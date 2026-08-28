@@ -1,0 +1,18 @@
+# ===== Node / 前端 (fluxmes) =====
+node_modules/
+dist/
+build/
+.vite/
+
+# ===== WorkBuddy 内部运行数据（记忆/会话/插件缓存，不提交） =====
+.workbuddy/
+
+# ===== IDE =====
+.idea/
+.vscode/
+
+# ===== 系统 / 杂项 =====
+.DS_Store
+Thumbs.db
+*.log
+*.tmp

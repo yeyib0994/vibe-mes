@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ---- Seed tokens（Nudge 可调控的种子层） ---- */
+  --seed-bg: #0a0a0a;
+  --seed-surface: #161616;
+  --seed-fg: #ededed;
+  --seed-primary: #3291ff;
+  --seed-accent: #3ddc97;
+  --seed-radius: 10px;
+  --seed-density: 1;
+
+  /* ---- Derived tokens（由种子派生，随外观预设自动切换） ---- */
+  --background: var(--seed-bg);
+  --foreground: var(--seed-fg);
+  --fg-hover: color-mix(in srgb, var(--seed-fg) 86%, var(--seed-bg));
+  --card: color-mix(in srgb, var(--seed-surface) 55%, var(--seed-bg));
+  --muted: color-mix(in srgb, var(--seed-fg) 6%, var(--seed-bg));
+  --muted-foreground: color-mix(in srgb, var(--seed-fg) 54%, var(--seed-bg));
+  --faint: color-mix(in srgb, var(--seed-fg) 34%, var(--seed-bg));
+  --border: color-mix(in srgb, var(--seed-fg) 9%, var(--seed-bg));
+  --border-strong: color-mix(in srgb, var(--seed-fg) 16%, var(--seed-bg));
+  --ring: color-mix(in srgb, var(--seed-primary) 50%, transparent);
+  --primary-soft: color-mix(in srgb, var(--seed-primary) 14%, transparent);
+  --accent-soft: color-mix(in srgb, var(--seed-accent) 13%, transparent);
+  --warn: color-mix(in srgb, #f5a623 80%, var(--seed-fg));
+  --warn-soft: color-mix(in srgb, var(--warn) 13%, transparent);
+  --danger: color-mix(in srgb, #ff5b4f 86%, var(--seed-fg));
+  --danger-soft: color-mix(in srgb, var(--danger) 13%, transparent);
+  --chart-grid: color-mix(in srgb, var(--seed-fg) 7%, transparent);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 14px;
+    font-feature-settings: 'liga' 1;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--seed-primary) 32%, transparent);
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+    border: 3px solid var(--seed-bg);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border border-border bg-card;
+  }
+  .card-pad {
+    padding: calc(16px * var(--seed-density));
+  }
+  .grid-gap {
+    gap: calc(12px * var(--seed-density));
+  }
+  .section-gap {
+    gap: calc(16px * var(--seed-density));
+  }
+  .num {
+    @apply font-mono tabular-nums;
+  }
+  .label-tech {
+    @apply font-mono text-[11px] uppercase tracking-wide text-faint;
+  }
+}
