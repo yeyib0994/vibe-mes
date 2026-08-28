@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fluxmes-alarm-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/fluxmes}
+    username: ${DB_USER:fluxmes}
+    password: ${DB_PASSWORD:fluxmes}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Shanghai
+
+# 报警响应 SLA 阈值（分钟），按级别配置；critical 超时触发升级（FR-8/FR-9，P1 接入升级通知）
+fluxmes:
+  alarm:
+    sla-minutes:
+      critical: 5
+      major: 15
+      minor: 30
+    # 模拟 SCADA/OPC-UA 报警流（T5 演示）：周期产生新报警并经 SSE 推送。生产置 enabled=false 并接真实采集。
+    simulator:
+      enabled: true
+      initial-delay-ms: 15000
+      interval-ms: 25000
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.fluxmes: INFO

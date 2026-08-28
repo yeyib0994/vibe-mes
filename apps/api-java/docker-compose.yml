@@ -1,0 +1,21 @@
+services:
+  postgres:
+    # 本机 Docker Hub 被墙，使用可达的 DaoCloud 镜像加速地址
+    image: docker.m.daocloud.io/library/postgres:16-alpine
+    container_name: fluxmes-postgres
+    environment:
+      POSTGRES_DB: fluxmes
+      POSTGRES_USER: fluxmes
+      POSTGRES_PASSWORD: fluxmes
+    ports:
+      - "5433:5432"
+    volumes:
+      - fluxmes-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fluxmes -d fluxmes"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  fluxmes-pgdata:

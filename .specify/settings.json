@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "specsDir": "specs",
+  "templatesDir": ".specify/templates",
+  "conventions": ".specify/conventions.md",
+  "requireEars": true,
+  "priorityLevels": ["P0", "P1", "P2"],
+  "branchNaming": "{type}/{module-slug}-{short-desc}",
+  "moduleSlugPattern": "^[a-z][a-z0-9-]*$",
+  "requiredSections": {
+    "constitution": [
+      "项目背景",
+      "目标",
+      "非目标",
+      "设计原则",
+      "技术栈约束",
+      "行业合规约束",
+      "规范要求",
+      "质量要求",
+      "模块索引"
+    ],
+    "spec": [
+      "概述",
+      "用户场景",
+      "功能需求",
+      "非功能需求",
+      "边界与约束",
+      "成功标准",
+      "现状对照"
+    ],
+    "plan": [
+      "架构概览",
+      "数据模型",
+      "关键技术决策",
+      "集成点",
+      "合规与安全设计",
+      "风险"
+    ],
+    "tasks": [
+      "任务",
+      "进度总览"
+    ]
+  },
+  "complianceRefs": ["C1", "C2", "C3", "C4", "C5", "C6"]
+}
