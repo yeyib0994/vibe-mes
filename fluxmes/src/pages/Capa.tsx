@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ComponentType, type ReactNode } from 'react'
 import {
   CalendarClock,
   CheckCircle2,
@@ -10,7 +10,7 @@ import {
   TriangleAlert,
   XCircle,
 } from 'lucide-react'
-import { Badge, Button, Card, Input, Tabs } from '../components/ui'
+import { Badge, Button, Card, Input, Tabs, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import { SignatureDialog, SignatureList } from '../components/signature-bar'
 import {
@@ -31,6 +31,7 @@ import {
   useTransitionCapa,
   useUpdateCapa,
   useVerifyCapa,
+  type CapaItem,
 } from '../api/regtech'
 import { hasRole } from '../lib/auth'
 
@@ -47,7 +48,20 @@ const TABS = [
 
 const STATUS_ORDER = ['open', 'in_progress', 'pending_verify', 'verified', 'closed', 'rejected']
 
-function StatCard({ icon: Icon, label, value, sub, tone = 'primary' }) {
+/** JS 常量模块索引安全化（保持运行时行为不变）。 */
+const STATUS_META = CAPA_STATUS as Record<string, { label: string; tone: BadgeTone }>
+const SEV_TONE = SEVERITY_TONE as Record<string, BadgeTone>
+
+type SignMode = 'verify' | 'close'
+type SignRequest = { mode: SignMode; id: string | number } | null
+
+function StatCard({ icon: Icon, label, value, sub, tone = 'primary' }: {
+  icon: ComponentType<{ className?: string }>
+  label?: ReactNode
+  value?: ReactNode
+  sub?: ReactNode
+  tone?: string
+}) {
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between">
@@ -62,7 +76,7 @@ function StatCard({ icon: Icon, label, value, sub, tone = 'primary' }) {
   )
 }
 
-function Field({ label, children }) {
+function Field({ label, children }: { label?: ReactNode; children?: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
@@ -71,14 +85,14 @@ function Field({ label, children }) {
   )
 }
 
-function StatusBadge({ capa }) {
-  const meta = CAPA_STATUS[capa.status] ?? { label: capa.status, tone: 'muted' }
+function StatusBadge({ capa }: { capa: CapaItem }) {
+  const meta = STATUS_META[capa.status ?? ''] ?? { label: capa.status ?? '', tone: 'muted' as BadgeTone }
   return (
     <>
       <Badge tone={meta.tone}>{meta.label}</Badge>
       {capa.overdue && (
         <Badge tone="danger" className="ml-1">
-          逾期 {Math.abs(capa.daysLeft)} 天
+          逾期 {Math.abs(capa.daysLeft ?? 0)} 天
         </Badge>
       )}
       {!capa.overdue && capa.dueSoon && (
@@ -92,7 +106,7 @@ function StatusBadge({ capa }) {
 
 export default function Capa() {
   const [tab, setTab] = useState('list')
-  const [selected, setSelected] = useState(null)
+  const [selected, setSelected] = useState<string | number | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
   const canCreate = hasRole('QC')
   const canVerify = hasRole('ADMIN')
@@ -129,7 +143,7 @@ export default function Capa() {
     comment: '',
   })
   // 签名对话框状态：{ mode: 'verify' | 'close', id }
-  const [signFor, setSignFor] = useState(null)
+  const [signFor, setSignFor] = useState<SignRequest>(null)
 
   const items = listRes?.items ?? []
   const byOwner = overdueRes?.byOwner ?? []
@@ -177,7 +191,7 @@ export default function Capa() {
     )
   }
 
-  function onSigned({ meaning, password }) {
+  function onSigned({ meaning, password }: { meaning?: string; password?: string }) {
     if (!signFor) return
     const signature = { meaning, password }
     const done = () => setSignFor(null)
@@ -239,7 +253,7 @@ export default function Capa() {
               <option value="">全部状态</option>
               {STATUS_ORDER.map((s) => (
                 <option key={s} value={s}>
-                  {CAPA_STATUS[s]?.label ?? s}
+                  {STATUS_META[s]?.label ?? s}
                 </option>
               ))}
             </select>
@@ -270,7 +284,7 @@ export default function Capa() {
                     </td>
                     <td className="py-2 pr-3 text-xs">{c.typeLabel}</td>
                     <td className="py-2 pr-3">
-                      <Badge tone={SEVERITY_TONE[c.severity] ?? 'muted'} className="mr-1.5">
+                      <Badge tone={SEV_TONE[c.severity ?? ''] ?? 'muted'} className="mr-1.5">
                         {c.severity}
                       </Badge>
                       {c.title}
@@ -337,17 +351,17 @@ export default function Capa() {
                       <span className="num">{c.id}</span> · {c.title}
                     </div>
                     <div className="text-xs text-faint">
-                      责任人 {c.owner} · 到期 {c.dueDate} · 逾期 {Math.abs(c.daysLeft)} 天
+                      责任人 {c.owner} · 到期 {c.dueDate} · 逾期 {Math.abs(c.daysLeft ?? 0)} 天
                     </div>
                   </div>
-                  <Badge tone={SEVERITY_TONE[c.severity] ?? 'muted'}>{c.severity}</Badge>
+                  <Badge tone={SEV_TONE[c.severity ?? ''] ?? 'muted'}>{c.severity}</Badge>
                 </div>
               ))}
               {!overdueRes?.overdue?.length && <div className="text-xs text-faint">无逾期 CAPA</div>}
             </div>
             {(overdueRes?.alarmRaised ?? 0) > 0 && (
               <div className="mt-3 text-xs text-danger">
-                本次检查新产生 {overdueRes.alarmRaised} 条逾期报警（同源同内容去重）
+                本次检查新产生 {overdueRes?.alarmRaised} 条逾期报警（同源同内容去重）
               </div>
             )}
           </Card>
@@ -557,10 +571,23 @@ function CapaDetail({
   verifyForm,
   setVerifyForm,
   onRequestSign,
+}: {
+  id: string | number
+  canCreate: boolean
+  canVerify: boolean
+  transition: ReturnType<typeof useTransitionCapa>
+  addTask: ReturnType<typeof useAddCapaTask>
+  doneTask: ReturnType<typeof useDoneCapaTask>
+  updateCapa: ReturnType<typeof useUpdateCapa>
+  taskForm: { action: string; owner: string; dueDate: string }
+  setTaskForm: (v: { action: string; owner: string; dueDate: string }) => void
+  verifyForm: { verificationMethod: string; effectiveness: string; comment: string }
+  setVerifyForm: (v: { verificationMethod: string; effectiveness: string; comment: string }) => void
+  onRequestSign: (mode: SignMode) => void
 }) {
   // 详情单独拉取（含行动项 / 状态流水 / 签名），列表只带行动项汇总
   const { data: c } = useCapaDetail(id)
-  const [edit, setEdit] = useState(null)
+  const [edit, setEdit] = useState<string | null>(null)
 
   const tasks = c?.tasks ?? []
   const events = c?.events ?? []

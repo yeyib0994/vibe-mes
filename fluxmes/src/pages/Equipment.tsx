@@ -1,3 +1,4 @@
+import type { ComponentType, ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   CartesianGrid,
@@ -19,28 +20,77 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react'
-import { Badge, Button, Card, Dot } from '../components/ui'
+import { Badge, Button, Card, Dot, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import { ComplianceStrip, MaintenancePanel } from '../components/equipment-panel'
 import { AXIS_TICK, ChartTip } from '../components/charts'
 import { equipmentHealthMap } from '../data/mes'
-import { useEquipmentDetail, useEquipmentFleet } from '../api/equipment'
+import { useEquipmentDetail, useEquipmentFleet, type EquipmentItem } from '../api/equipment'
 import StalenessBadge from '../components/StalenessBadge'
 import { DataSourceBadge, IntegrationStrip } from '../components/integration-strip'
 import { sourceMeta } from '../api/integration'
 import { cn } from '../lib/utils'
 
-const STATUS_DOT = { running: 'accent', alarm: 'danger', cleaning: 'warn', idle: 'muted', standby: 'primary' }
-const STATUS_TEXT = { running: 'text-accent', alarm: 'text-danger', cleaning: 'text-warn', idle: 'text-muted-foreground' }
+/** 设备健康状态 → 点色 / 文字色。 */
+type EquipStatusKey = 'running' | 'alarm' | 'cleaning' | 'idle' | 'standby'
+
+const STATUS_DOT: Record<EquipStatusKey, BadgeTone> = {
+  running: 'accent',
+  alarm: 'danger',
+  cleaning: 'warn',
+  idle: 'muted',
+  standby: 'primary',
+}
+const STATUS_TEXT: Record<EquipStatusKey, string> = {
+  running: 'text-accent',
+  alarm: 'text-danger',
+  cleaning: 'text-warn',
+  idle: 'text-muted-foreground',
+  standby: '',
+}
+
+/** 设备健康映射（mes.js 导出，键为 good/watch/fault/idle）。 */
+const HEALTH_MAP: Record<string, { label: string; tone: BadgeTone }> = equipmentHealthMap as unknown as Record<
+  string,
+  { label: string; tone: BadgeTone }
+>
+const healthOf = (h?: string) => HEALTH_MAP[h ?? ''] ?? { label: h ?? '—', tone: 'muted' as BadgeTone }
+/** 页面展示用设备条目（api 层类型 + fixture 缝合出的展示字段）。 */
+type EquipRow = EquipmentItem & {
+  type?: string
+  vol?: string
+  batch?: string
+  runHours?: number
+  mtbf?: number
+  /** 以下三项 fixture/后端均必带，页面直接解引用，故这里放宽为非可选。 */
+  maint: { last?: string; next?: string; nextTask?: string; cycleDays?: number; [key: string]: unknown }
+  metrics: { oee?: number; availability?: number; performance?: number; quality?: number; [key: string]: unknown }
+  params: NonNullable<EquipmentItem['params']>
+}
 // 由健康度 + 是否维护推导状态文案，供列表点色。
-function equipStatus(e) {
+function equipStatus(e: EquipRow): EquipStatusKey {
   if (e.health === 'fault') return 'alarm'
   if (e.health === 'idle') return 'idle'
-  if (e.maint.nextTask.includes('CIP') || e.code === 'F-103') return 'cleaning'
+  if (e.maint?.nextTask?.includes('CIP') || e.code === 'F-103') return 'cleaning'
   return 'running'
 }
 
-function StatCard({ icon: Icon, label, value, unit, badge, sub }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  unit,
+  badge,
+  sub,
+}: {
+  icon: ComponentType<{ className?: string }>
+  label: ReactNode
+  value: ReactNode
+  unit?: ReactNode
+  badge?: ReactNode
+  sub?: ReactNode
+  [key: string]: unknown
+}) {
   return (
     <Card className="card-pad" data-component="equip-stat">
       <div className="flex items-center justify-between gap-2">
@@ -58,15 +108,15 @@ function StatCard({ icon: Icon, label, value, unit, badge, sub }) {
   )
 }
 
-function ParamStateBadge({ state }) {
+function ParamStateBadge({ state }: { state?: string; [key: string]: unknown }) {
   if (state === 'ooc') return <Badge tone="danger" dot={false}>越限</Badge>
   if (state === 'near') return <Badge tone="warn" dot={false}>接近限值</Badge>
   return <Badge tone="accent" dot={false}>正常</Badge>
 }
 
-export default function Equipment({ onNavigate }) {
+export default function Equipment({ onNavigate }: { onNavigate?: (key: string) => void }) {
   const { data: fleet } = useEquipmentFleet()
-  const equipment = fleet?.equipment ?? []
+  const equipment = (fleet?.equipment ?? []) as EquipRow[]
   const summary = fleet?.summary
   const [code, setCode] = useState('F-101')
   const [paramIdx, setParamIdx] = useState(0)
@@ -169,11 +219,11 @@ export default function Equipment({ onNavigate }) {
                       <span className="truncate text-[13px] font-medium">{e.name}</span>
                     </div>
                     <div className="num mt-0.5 truncate text-[11px] text-faint">
-                      {e.metrics.oee > 0 ? `OEE ${e.metrics.oee}%` : e.maint.nextTask}
+                      {(e.metrics.oee ?? 0) > 0 ? `OEE ${e.metrics.oee}%` : e.maint.nextTask}
                     </div>
                   </div>
                   <span className={cn('shrink-0 text-xs font-medium', STATUS_TEXT[st])}>
-                    {equipmentHealthMap[e.health].label}
+                    {healthOf(e.health).label}
                   </span>
                   <ChevronRight className={cn('h-3.5 w-3.5 shrink-0', isActive ? 'text-primary' : 'text-faint')} />
                 </button>
@@ -191,8 +241,8 @@ export default function Equipment({ onNavigate }) {
                   <div>
                     <div className="flex items-center gap-2.5">
                       <span className="text-[17px] font-semibold tracking-tight">{selected.name}</span>
-                      <Badge tone={equipmentHealthMap[selected.health].tone} pulse={selected.health === 'fault'} dot={false}>
-                        {equipmentHealthMap[selected.health].label}
+                      <Badge tone={healthOf(selected.health).tone} pulse={selected.health === 'fault'} dot={false}>
+                        {healthOf(selected.health).label}
                       </Badge>
                     </div>
                     <div className="num mt-1 text-xs text-muted-foreground">
@@ -216,7 +266,7 @@ export default function Equipment({ onNavigate }) {
                   <Metric label="合格品率" value={`${selected.metrics.quality}%`} />
                 </div>
                 <div className="num mt-3 flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-3 text-[11px] text-faint">
-                  <span>累计运行 {selected.runHours.toLocaleString()} h</span>
+                  <span>累计运行 {(selected.runHours ?? 0).toLocaleString()} h</span>
                   <span>平均无故障 MTBF {selected.mtbf} h</span>
                   <span>上次维护 {selected.maint.last}</span>
                   <span className="text-warn">下次 {selected.maint.next} · {selected.maint.nextTask}</span>
@@ -364,7 +414,7 @@ export default function Equipment({ onNavigate }) {
   )
 }
 
-function Metric({ label, value }) {
+function Metric({ label, value }: { label: ReactNode; value: ReactNode; [key: string]: unknown }) {
   return (
     <div className="rounded-md bg-muted px-3 py-2">
       <div className="label-tech">{label}</div>

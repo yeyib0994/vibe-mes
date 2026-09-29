@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ComponentType, type FormEvent, type ReactNode } from 'react'
 import {
   Boxes,
   Clock,
@@ -9,7 +9,7 @@ import {
   TestTube,
   Wheat,
 } from 'lucide-react'
-import { Badge, Button, Card, Input, Tabs } from '../components/ui'
+import { Badge, Button, Card, Input, Tabs, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import {
   RESULT_TONE,
@@ -35,10 +35,17 @@ const TABS = [
   { key: 'shelf', label: '留样与效期' },
 ]
 
-const QC_TONE = { RELEASED: 'success', PENDING: 'warning', FAIL: 'danger' }
-const QC_TEXT = { RELEASED: '已放行', PENDING: '待检验', FAIL: '不合格' }
+const QC_TONE: Record<string, BadgeTone> = { RELEASED: 'success', PENDING: 'warning', FAIL: 'danger' }
+const QC_TEXT: Record<string, string> = { RELEASED: '已放行', PENDING: '待检验', FAIL: '不合格' }
 
-function StatCard({ icon: Icon, label, value, unit, tone = 'primary', sub }) {
+function StatCard({ icon: Icon, label, value, unit, tone = 'primary', sub }: {
+  icon: ComponentType<{ className?: string }>
+  label?: ReactNode
+  value?: ReactNode
+  unit?: ReactNode
+  tone?: string
+  sub?: ReactNode
+}) {
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between">
@@ -54,7 +61,7 @@ function StatCard({ icon: Icon, label, value, unit, tone = 'primary', sub }) {
   )
 }
 
-function Field({ label, children }) {
+function Field({ label, children }: { label?: ReactNode; children?: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
@@ -142,13 +149,13 @@ function LotsPanel() {
                     </td>
                     <td className="num py-2 pr-3 text-xs">
                       {l.expiryDate}
-                      <span className={`ml-1 ${l.daysToExpiry <= 30 ? 'text-danger' : 'text-faint'}`}>
+                      <span className={`ml-1 ${(l.daysToExpiry ?? 999) <= 30 ? 'text-danger' : 'text-faint'}`}>
                         ({l.daysToExpiry}d)
                       </span>
                     </td>
                     <td className="py-2 pr-3 text-xs">{l.warehouseBin}</td>
                     <td className="py-2 pr-3">
-                      <Badge tone={QC_TONE[l.qcStatus]}>{QC_TEXT[l.qcStatus]}</Badge>
+                      <Badge tone={QC_TONE[l.qcStatus ?? ''] ?? 'muted'}>{QC_TEXT[l.qcStatus ?? ''] ?? l.qcStatus}</Badge>
                     </td>
                     <td className="py-2">
                       {l.qcStatus === 'PENDING' && hasRole('QC') && (
@@ -253,7 +260,7 @@ function GenealogyPanel() {
               <div key={u.lotId} className="rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between">
                   <span className="num text-sm">{u.lotId}</span>
-                  <Badge tone={QC_TONE[u.qcStatus]}>{QC_TEXT[u.qcStatus]}</Badge>
+                  <Badge tone={QC_TONE[u.qcStatus ?? ''] ?? 'muted'}>{QC_TEXT[u.qcStatus ?? ''] ?? u.qcStatus}</Badge>
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
                   {u.materialName} · {u.supplier}（供应商批 {u.supplierLot}）
@@ -268,8 +275,8 @@ function GenealogyPanel() {
             )}
           </div>
         )}
-        {inputsRes && inputsRes.inputs?.length > 0 && (
-          <div className="mt-3 text-xs text-faint">投料记录 {inputsRes.inputs.length} 条</div>
+        {inputsRes && (inputsRes.inputs?.length ?? 0) > 0 && (
+          <div className="mt-3 text-xs text-faint">投料记录 {inputsRes.inputs?.length} 条</div>
         )}
       </Card>
 
@@ -458,7 +465,7 @@ function ShelfPanel() {
                   <div className="text-xs text-muted-foreground">{b.product}</div>
                 </div>
                 <div className="text-right">
-                  <div className="num text-sm text-danger">过期 {Math.abs(b.daysLeft)} 天</div>
+                  <div className="num text-sm text-danger">过期 {Math.abs(b.daysLeft ?? 0)} 天</div>
                   <div className="text-xs text-faint">{b.expiryDate}</div>
                 </div>
               </div>
@@ -473,7 +480,7 @@ function ShelfPanel() {
   )
 }
 
-export default function Materials({ session }) {
+export default function Materials({ session }: { session?: unknown }) {
   const [tab, setTab] = useState('lots')
   void session
   return (

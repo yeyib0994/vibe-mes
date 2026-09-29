@@ -1,14 +1,30 @@
+import type { CSSProperties, HTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
 import { cn } from '../lib/utils'
 
+/**
+ * qoder 工作台生成的源码映射属性，透传到原生元素上，不影响行为。
+ * 各组件统一继承宿主元素的 props，避免调用点出现「className 必填」这类误报。
+ */
+type QoderProps = {
+  style?: CSSProperties
+  'data-qoder-id'?: string
+  'data-qoder-source'?: string
+}
+
+export type BadgeTone = 'muted' | 'primary' | 'accent' | 'warn' | 'warning' | 'danger' | 'success'
+export type BarTone = 'primary' | 'accent' | 'warn' | 'danger'
+export type ButtonVariant = 'primary' | 'outline' | 'ghost'
+export type ButtonSize = 'sm' | 'md' | 'lg'
+
 /* ---------- Card ---------- */
-export function Card({ className, ...props }) {
+export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement> & QoderProps) {
   return <div className={cn('card', className)} {...props}  style={props?.style} data-qoder-id={props?.["data-qoder-id"]} data-qoder-source={props?.["data-qoder-source"]}/>
 }
 
 /* ---------- Badge ---------- */
 // 注意：'warning' 是历史沿用名（全仓约 25 处调用），'warn' 为同一语义色的规范名；
 // 两者都保留，避免一次性改动所有调用点。'success' 此前缺失，导致 Badge 落到 undefined 样式。
-const badgeTones = {
+const badgeTones: Record<BadgeTone, string> = {
   muted: 'bg-muted text-muted-foreground',
   primary: 'bg-primary-soft text-primary',
   accent: 'bg-accent-soft text-accent',
@@ -17,7 +33,7 @@ const badgeTones = {
   danger: 'bg-danger-soft text-danger',
   success: 'bg-success-soft text-success',
 }
-const dotTones = {
+const dotTones: Record<BadgeTone, string> = {
   muted: 'bg-faint',
   primary: 'bg-primary',
   accent: 'bg-accent',
@@ -27,7 +43,20 @@ const dotTones = {
   success: 'bg-success',
 }
 
-export function Badge({ tone = 'muted', dot = true, pulse = false, className = '', children, ...qoderProps }) {
+export function Badge({
+  tone = 'muted',
+  dot = true,
+  pulse = false,
+  className = '',
+  children,
+  ...qoderProps
+}: {
+  tone?: BadgeTone
+  dot?: boolean
+  pulse?: boolean
+  className?: string
+  children?: ReactNode
+} & QoderProps) {
   return (
     <span
       className={cn(
@@ -43,18 +72,26 @@ export function Badge({ tone = 'muted', dot = true, pulse = false, className = '
 }
 
 /* ---------- Button ---------- */
-const btnVariants = {
+const btnVariants: Record<ButtonVariant, string> = {
   primary: 'bg-foreground text-background hover:bg-[var(--fg-hover)]',
   outline: 'border border-border-strong bg-transparent text-foreground hover:bg-muted',
   ghost: 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
 }
-const btnSizes = {
+const btnSizes: Record<ButtonSize, string> = {
   sm: 'h-7 px-2.5 text-xs',
   md: 'h-8 px-3 text-[13px]',
   lg: 'h-9 px-4 text-sm',
 }
 
-export function Button({ variant = 'outline', size = 'md', className, ...props }) {
+export function Button({
+  variant = 'outline',
+  size = 'md',
+  className,
+  ...props
+}: {
+  variant?: ButtonVariant
+  size?: ButtonSize
+} & React.ButtonHTMLAttributes<HTMLButtonElement> & QoderProps) {
   return (
     <button
       className={cn(
@@ -69,9 +106,13 @@ export function Button({ variant = 'outline', size = 'md', className, ...props }
 }
 
 /* ---------- Progress ---------- */
-const barTones = { primary: 'bg-primary', accent: 'bg-accent', warn: 'bg-warn', danger: 'bg-danger' }
+const barTones: Record<BarTone, string> = { primary: 'bg-primary', accent: 'bg-accent', warn: 'bg-warn', danger: 'bg-danger' }
 
-export function Progress({ value = 0, tone = 'primary', className, ...qoderProps }) {
+export function Progress({ value = 0, tone = 'primary', className, ...qoderProps }: {
+  value?: number
+  tone?: BarTone
+  className?: string
+} & QoderProps) {
   return (
     <div className={cn('h-1.5 w-full overflow-hidden rounded-full bg-muted', className)} style={qoderProps?.style} data-qoder-id={qoderProps?.["data-qoder-id"]} data-qoder-source={qoderProps?.["data-qoder-source"]}>
       <div
@@ -83,7 +124,7 @@ export function Progress({ value = 0, tone = 'primary', className, ...qoderProps
 }
 
 /* ---------- Input ---------- */
-export function Input({ className, ...props }) {
+export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement> & QoderProps) {
   return (
     <input
       className={cn(
@@ -96,9 +137,16 @@ export function Input({ className, ...props }) {
 }
 
 /* ---------- Tabs（Vercel 风格下划线选项卡） ---------- */
-export function Tabs({ items, active, onChange, className, ...qoderProps }) {
+export type TabItem = { key: string; label: ReactNode; count?: number }
+
+export function Tabs({ items, active, onChange, className, ...qoderProps }: {
+  items: TabItem[]
+  active: string
+  onChange: (key: string) => void
+  className?: string
+} & QoderProps) {
   return (
-    <div className={cn('flex items-center gap-1 border-b border-border', className)} style={qoderProps?.style} data-qoder-id={qoderProps?.["data-qoder-id"]} data-qoder-source={qoderProps?.["data-qoder-source"]}>
+    <div className={cn('flex items-center gap-1 border-b border-border ', className)} style={qoderProps?.style} data-qoder-id={qoderProps?.["data-qoder-id"]} data-qoder-source={qoderProps?.["data-qoder-source"]}>
       {items.map((t) => {
         const isActive = active === t.key
         return (
@@ -123,6 +171,10 @@ export function Tabs({ items, active, onChange, className, ...qoderProps }) {
 }
 
 /* ---------- Status Dot ---------- */
-export function Dot({ tone = 'muted', pulse = false, className, ...qoderProps }) {
+export function Dot({ tone = 'muted', pulse = false, className, ...qoderProps }: {
+  tone?: BadgeTone
+  pulse?: boolean
+  className?: string
+} & QoderProps) {
   return <span className={cn('inline-block h-2 w-2 shrink-0 rounded-full', dotTones[tone], pulse && 'animate-pulse', className)}  style={qoderProps?.style} data-qoder-id={qoderProps?.["data-qoder-id"]} data-qoder-source={qoderProps?.["data-qoder-source"]}/>
 }

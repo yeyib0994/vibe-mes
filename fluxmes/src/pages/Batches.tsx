@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Download, Plus, Search, TriangleAlert } from 'lucide-react'
-import { Badge, Button, Card, Input, Progress, Tabs } from '../components/ui'
+import { Badge, Button, Card, Input, Progress, Tabs, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import { BatchRowActions, NewBatchButton } from '../components/batch-actions'
 import EbrPanel from '../components/ebr-panel'
@@ -17,7 +17,10 @@ const TAB_ITEMS = [
   { key: 'abnormal', label: '异常' },
 ]
 
-const STAGE_STYLE = {
+/** 工序阶段状态 → 样式。 */
+type StageState = 'done' | 'active' | 'fail' | 'todo' | 'none'
+
+const STAGE_STYLE: Record<StageState, string> = {
   done: 'border-border text-muted-foreground',
   active: 'border-primary bg-primary-soft text-primary',
   fail: 'border-danger bg-danger-soft text-danger',
@@ -25,7 +28,28 @@ const STAGE_STYLE = {
   none: 'hidden',
 }
 
-function StageFlow({ stages, ...qoderProps }) {
+/** 工作台源码映射属性（改 tsx 后原样保留）。 */
+type QoderProps = { className?: string; style?: React.CSSProperties; [key: string]: unknown }
+
+/** 页面批次条目（BatchListItem 的展示侧子集）。 */
+type BatchRow = {
+  id: string
+  product?: string
+  recipe?: string
+  equipment?: string
+  stage?: string
+  params?: string
+  progress?: number
+  status: string
+  start?: string
+  stages?: [string, StageState][]
+  meta?: string[]
+  [key: string]: unknown
+}
+
+type StageFlowProps = { stages?: [string, StageState][] } & QoderProps
+
+function StageFlow({ stages = [], ...qoderProps }: StageFlowProps) {
   return (
     <div className={["flex flex-wrap items-center gap-y-1.5", qoderProps?.className].filter(Boolean).join(" ")} style={qoderProps?.style} data-qoder-id={qoderProps?.["data-qoder-id"]} data-qoder-source={qoderProps?.["data-qoder-source"]}>
       {stages.map(([name, st], i) => {
@@ -51,7 +75,7 @@ function StageFlow({ stages, ...qoderProps }) {
   )
 }
 
-function BatchDetail({ batch, ...qoderProps }) {
+function BatchDetail({ batch, ...qoderProps }: { batch: BatchRow } & QoderProps) {
   return (
     <div
       className={["card-pad border-b border-border", qoderProps?.className].filter(Boolean).join(" ")}
@@ -65,7 +89,7 @@ function BatchDetail({ batch, ...qoderProps }) {
         <div data-qoder-id="qel-div-a3266622" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-div-a3266622&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Batches.jsx&quot;,&quot;componentName&quot;:&quot;BatchDetail&quot;,&quot;elementRole&quot;:&quot;div&quot;,&quot;loc&quot;:{&quot;line&quot;:61,&quot;column&quot;:9}}">
           <div className="label-tech mb-2" data-qoder-id="qel-label-tech-dc75cb2b" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-label-tech-dc75cb2b&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Batches.jsx&quot;,&quot;componentName&quot;:&quot;BatchDetail&quot;,&quot;elementRole&quot;:&quot;label-tech&quot;,&quot;loc&quot;:{&quot;line&quot;:62,&quot;column&quot;:11}}">批次档案</div>
           <ul className="space-y-1 text-xs text-muted-foreground" data-qoder-id="qel-space-y-1-8efdb1d5" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-space-y-1-8efdb1d5&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Batches.jsx&quot;,&quot;componentName&quot;:&quot;BatchDetail&quot;,&quot;elementRole&quot;:&quot;space-y-1&quot;,&quot;loc&quot;:{&quot;line&quot;:63,&quot;column&quot;:11}}">
-            {batch.meta.map((m) => (
+            {(batch.meta ?? []).map((m) => (
               <li key={m} className="flex items-start gap-2" data-qoder-id="qel-flex-6ac28873" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-flex-6ac28873&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Batches.jsx&quot;,&quot;componentName&quot;:&quot;BatchDetail&quot;,&quot;elementRole&quot;:&quot;flex&quot;,&quot;loc&quot;:{&quot;line&quot;:65,&quot;column&quot;:15}}">
                 <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-faint"  data-qoder-id="qel-mt-1-5-9cbe8159" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-mt-1-5-9cbe8159&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Batches.jsx&quot;,&quot;componentName&quot;:&quot;BatchDetail&quot;,&quot;elementRole&quot;:&quot;mt-1-5&quot;,&quot;loc&quot;:{&quot;line&quot;:66,&quot;column&quot;:17}}"/>
                 {m}
@@ -86,16 +110,18 @@ function BatchDetail({ batch, ...qoderProps }) {
 
 export default function Batches() {
   const { data: batchesRaw } = useBatches()
-  const batches = batchesRaw?.batches ?? []
+  const batches = (batchesRaw?.batches ?? []) as BatchRow[]
   const [tab, setTab] = useState('all')
   const [keyword, setKeyword] = useState('')
-  const [expanded, setExpanded] = useState('B-260826-014')
+  const [expanded, setExpanded] = useState<string | null>('B-260826-014')
 
   const counts = useMemo(() => {
-    const c = { all: batches.length }
-    for (const b of batches) c[b.status] = (c[b.status] || 0) + 1
+    const c: Record<string, number> = { all: batches.length }
+    for (const b of batches) {
+      if (b.status) c[b.status] = (c[b.status] || 0) + 1
+    }
     return c
-  }, [])
+  }, [batches])
 
   const tabs = TAB_ITEMS.map((t) => ({ ...t, count: counts[t.key] || 0 }))
 
@@ -177,8 +203,19 @@ export default function Batches() {
   )
 }
 
-function FragmentRow({ batch: b, st, isOpen, onToggle }) {
-  const progressTone = b.status === 'abnormal' ? 'danger' : b.status === 'waiting' ? 'warn' : b.status === 'done' ? 'accent' : 'primary'
+function FragmentRow({
+  batch: b,
+  st,
+  isOpen,
+  onToggle,
+}: {
+  batch: BatchRow
+  st: { label: string; tone: BadgeTone }
+  isOpen: boolean
+  onToggle: () => void
+} & QoderProps) {
+  const progressTone: 'danger' | 'warn' | 'accent' | 'primary' =
+    b.status === 'abnormal' ? 'danger' : b.status === 'waiting' ? 'warn' : b.status === 'done' ? 'accent' : 'primary'
   return (
     <>
       <tr

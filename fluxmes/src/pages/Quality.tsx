@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import {
   Bar,
   CartesianGrid,
@@ -11,16 +12,27 @@ import {
   YAxis,
 } from 'recharts'
 import { ClipboardCheck } from 'lucide-react'
-import { Badge, Card } from '../components/ui'
+import { Badge, Card, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import QualityPanel from '../components/quality-panel'
 import { AXIS_TICK, ChartTip } from '../components/charts'
 import { SPC_CL, SPC_LCL, SPC_UCL, qcStatusMap } from '../data/mes'
-import { useQuality } from '../api/quality'
+import { useQuality, type QualityItem } from '../api/quality'
 import StalenessBadge from '../components/StalenessBadge'
 
-function SpcDot(props) {
-  const { cx, cy, payload, index } = props
+/** recharts 自定义点渲染器 props（仅用到的字段）。 */
+type SpcDotProps = {
+  cx?: number | null
+  cy?: number | null
+  index?: number
+  payload?: { ooc?: boolean; [key: string]: unknown }
+  className?: string
+  style?: React.CSSProperties
+  [key: string]: unknown
+}
+
+function SpcDot(props: SpcDotProps) {
+  const { cx, cy, payload = {}, index } = props
   if (cx == null || cy == null) return <g key={`d-${index}`}  style={props?.style} className={props?.className} data-qoder-id={props?.["data-qoder-id"]} data-qoder-source={props?.["data-qoder-source"]}/>
   return (
     <circle
@@ -35,7 +47,18 @@ function SpcDot(props) {
   )
 }
 
-function MiniStat({ label, value, unit, badge }) {
+function MiniStat({
+  label,
+  value,
+  unit,
+  badge,
+}: {
+  label: ReactNode
+  value: ReactNode
+  unit?: ReactNode
+  badge?: ReactNode
+  [key: string]: unknown
+}) {
   return (
     <Card className="card-pad" data-component="qc-kpi" data-qoder-id="qel-qc-kpi-66862c2f" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-qc-kpi-66862c2f&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;MiniStat&quot;,&quot;elementRole&quot;:&quot;qc-kpi&quot;,&quot;loc&quot;:{&quot;line&quot;:37,&quot;column&quot;:5}}">
       <div className="flex items-center justify-between" data-qoder-id="qel-flex-fe345b7f" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-flex-fe345b7f&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;MiniStat&quot;,&quot;elementRole&quot;:&quot;flex&quot;,&quot;loc&quot;:{&quot;line&quot;:38,&quot;column&quot;:7}}">
@@ -52,9 +75,15 @@ function MiniStat({ label, value, unit, badge }) {
 
 export default function Quality() {
   const { data: quality } = useQuality()
-  const spcData = quality?.spcData ?? []
-  const pareto = quality?.pareto ?? []
-  const qcTasks = quality?.qcTasks ?? []
+  const spcData = (quality?.spcData ?? []) as QualityItem[]
+  const paretoRaw = (quality?.pareto ?? []) as QualityItem[]
+  const pareto = paretoRaw.map((p) => ({
+    name: String(p.name ?? ''),
+    n: Number(p.n ?? 0),
+    cum: Number(p.cum ?? 0),
+  }))
+  const qcTasks = (quality?.qcTasks ?? []) as QualityItem[]
+  const paretoTotal = pareto.reduce((s, d) => s + d.n, 0)
   return (
     <div className="mx-auto max-w-[1600px] p-6" data-component="page-quality" data-qoder-id="qel-page-quality-c4c9ce38" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-page-quality-c4c9ce38&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;Quality&quot;,&quot;elementRole&quot;:&quot;page-quality&quot;,&quot;loc&quot;:{&quot;line&quot;:52,&quot;column&quot;:5}}">
       <PageHeader
@@ -117,7 +146,7 @@ export default function Quality() {
         <Card className="card-pad" data-component="pareto-chart" data-qoder-id="qel-pareto-chart-4c800d19" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-pareto-chart-4c800d19&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;Quality&quot;,&quot;elementRole&quot;:&quot;pareto-chart&quot;,&quot;loc&quot;:{&quot;line&quot;:109,&quot;column&quot;:9}}">
           <div className="mb-3" data-qoder-id="qel-mb-3-019d084d" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-mb-3-019d084d&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;Quality&quot;,&quot;elementRole&quot;:&quot;mb-3&quot;,&quot;loc&quot;:{&quot;line&quot;:110,&quot;column&quot;:11}}">
             <div className="text-[15px] font-semibold tracking-tight" data-qoder-id="qel-text-15px-bd4a018b" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-text-15px-bd4a018b&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;Quality&quot;,&quot;elementRole&quot;:&quot;text-15px&quot;,&quot;loc&quot;:{&quot;line&quot;:111,&quot;column&quot;:13}}">不合格项帕累托</div>
-            <div className="mt-0.5 text-xs text-muted-foreground" data-qoder-id="qel-mt-0-5-4bb32ee8" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-mt-0-5-4bb32ee8&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;Quality&quot;,&quot;elementRole&quot;:&quot;mt-0-5&quot;,&quot;loc&quot;:{&quot;line&quot;:112,&quot;column&quot;:13}}">近 30 日 · 共 {pareto.reduce((s, d) => s + d.n, 0)} 项次</div>
+            <div className="mt-0.5 text-xs text-muted-foreground" data-qoder-id="qel-mt-0-5-4bb32ee8" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-mt-0-5-4bb32ee8&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;Quality&quot;,&quot;elementRole&quot;:&quot;mt-0-5&quot;,&quot;loc&quot;:{&quot;line&quot;:112,&quot;column&quot;:13}}">近 30 日 · 共 {paretoTotal} 项次</div>
           </div>
           <div className="h-[260px]" data-qoder-id="qel-h-260px-9dcdf73e" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-h-260px-9dcdf73e&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;Quality&quot;,&quot;elementRole&quot;:&quot;h-260px&quot;,&quot;loc&quot;:{&quot;line&quot;:114,&quot;column&quot;:11}}">
             <ResponsiveContainer width="100%" height="100%" data-qoder-id="qel-responsivecontainer-d3e5dfc9" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-responsivecontainer-d3e5dfc9&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Quality.jsx&quot;,&quot;componentName&quot;:&quot;Quality&quot;,&quot;elementRole&quot;:&quot;responsivecontainer&quot;,&quot;loc&quot;:{&quot;line&quot;:115,&quot;column&quot;:13}}">

@@ -3,6 +3,7 @@ import { FlaskConical, LogIn, ShieldCheck } from 'lucide-react'
 import { Badge, Button, Input } from '../components/ui'
 import { useLogin } from '../api/auth'
 import { ROLE_LABEL } from '../lib/auth'
+import type { Session } from '../lib/auth'
 
 const DEMO = [
   { u: 'admin', p: 'admin123', role: 'ADMIN' },
@@ -11,7 +12,7 @@ const DEMO = [
   { u: 'operator', p: 'op12345', role: 'OPERATOR' },
 ]
 
-export default function Login({ onSuccess }: { onSuccess: (s: unknown) => void }) {
+export default function Login({ onSuccess }: { onSuccess: (s: Session) => void }) {
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('admin123')
   const { login, pending, error } = useLogin(onSuccess)

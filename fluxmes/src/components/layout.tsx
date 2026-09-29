@@ -226,9 +226,19 @@ export function Topbar({ page, session, ...qoderProps }) {
   )
 }
 
-export function PageHeader({ title, desc, actions, ...qoderProps }) {
+export function PageHeader({
+  title,
+  desc,
+  actions,
+  ...qoderProps
+}: {
+  title?: React.ReactNode
+  desc?: React.ReactNode
+  actions?: React.ReactNode
+  [key: string]: unknown
+}) {
   return (
-    <div className={["mb-4 flex flex-wrap items-end justify-between gap-4", qoderProps?.className].filter(Boolean).join(" ")} data-component="page-header" style={qoderProps?.style} data-qoder-id={qoderProps?.["data-qoder-id"]} data-qoder-source={qoderProps?.["data-qoder-source"]}>
+    <div className={["mb-4 flex flex-wrap items-end justify-between gap-4", qoderProps?.className as string | undefined].filter(Boolean).join(" ")} data-component="page-header" style={qoderProps?.style as React.CSSProperties | undefined} data-qoder-id={qoderProps?.["data-qoder-id"] as string | undefined} data-qoder-source={qoderProps?.["data-qoder-source"] as string | undefined}>
       <div data-qoder-id="qel-div-d6609734" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-div-d6609734&quot;,&quot;filePath&quot;:&quot;react-vite/src/components/layout.jsx&quot;,&quot;componentName&quot;:&quot;PageHeader&quot;,&quot;elementRole&quot;:&quot;div&quot;,&quot;loc&quot;:{&quot;line&quot;:179,&quot;column&quot;:7}}">
         <h1 className="text-xl font-semibold tracking-tight" data-qoder-id="qel-text-xl-f8da58dc" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-text-xl-f8da58dc&quot;,&quot;filePath&quot;:&quot;react-vite/src/components/layout.jsx&quot;,&quot;componentName&quot;:&quot;PageHeader&quot;,&quot;elementRole&quot;:&quot;text-xl&quot;,&quot;loc&quot;:{&quot;line&quot;:180,&quot;column&quot;:9}}">{title}</h1>
         <p className="mt-1 text-[13px] text-muted-foreground" data-qoder-id="qel-mt-1-b3aa144d" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-mt-1-b3aa144d&quot;,&quot;filePath&quot;:&quot;react-vite/src/components/layout.jsx&quot;,&quot;componentName&quot;:&quot;PageHeader&quot;,&quot;elementRole&quot;:&quot;mt-1&quot;,&quot;loc&quot;:{&quot;line&quot;:181,&quot;column&quot;:9}}">{desc}</p>

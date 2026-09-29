@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ComponentType, type ReactNode } from 'react'
 import {
   Activity,
   ClipboardList,
@@ -7,7 +7,7 @@ import {
   TriangleAlert,
   UserPlus,
 } from 'lucide-react'
-import { Badge, Button, Card, Input, Progress } from '../components/ui'
+import { Badge, Button, Card, Input, Progress, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import {
   DOWNTIME_CATEGORY_TEXT,
@@ -25,6 +25,7 @@ import {
   useTransitionOrder,
   useWorkOrder,
   useWorkOrders,
+  type DowntimeReason,
 } from '../api/execution'
 import { hasRole } from '../lib/auth'
 
@@ -34,9 +35,15 @@ import { hasRole } from '../lib/auth'
  * 权限（C4）：下达/完工/派工 = 值班长+；开工/报工/停机录入 = 工艺员+；关闭 = 管理员。
  */
 
-const TONE_BADGE = { success: 'success', warning: 'warning', danger: 'danger', primary: 'primary', muted: 'muted' }
+const TONE_BADGE: Record<string, BadgeTone> = { success: 'success', warning: 'warning', danger: 'danger', primary: 'primary', muted: 'muted' }
 
-function StatCard({ icon: Icon, label, value, unit, sub }) {
+function StatCard({ icon: Icon, label, value, unit, sub }: {
+  icon: ComponentType<{ className?: string }>
+  label?: ReactNode
+  value?: ReactNode
+  unit?: ReactNode
+  sub?: ReactNode
+}) {
   return (
     <Card className="p-4" data-component="execution-stat">
       <div className="flex items-start justify-between">
@@ -52,7 +59,7 @@ function StatCard({ icon: Icon, label, value, unit, sub }) {
   )
 }
 
-function Field({ label, children }) {
+function Field({ label, children }: { label?: ReactNode; children?: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
@@ -62,7 +69,12 @@ function Field({ label, children }) {
 }
 
 /** 因子卡：dataSufficient=false 时明确显示「数据不足」而非 0（FR-21）。 */
-function FactorCard({ label, value, sufficient, missing }) {
+function FactorCard({ label, value, sufficient, missing }: {
+  label?: ReactNode
+  value?: number | null
+  sufficient?: boolean
+  missing?: string | null
+}) {
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="flex items-center justify-between">
@@ -81,21 +93,22 @@ function FactorCard({ label, value, sufficient, missing }) {
   )
 }
 
-function toIso(localValue) {
+function toIso(localValue: string): string | null {
   if (!localValue) return null
   // datetime-local 为本地时间（Asia/Shanghai），补 +08:00 供后端解析
   return `${localValue}:00+08:00`
 }
 
-export default function Execution({ session }) {
+export default function Execution({ session }: { session?: unknown }) {
+  void session
   const [statusFilter, setStatusFilter] = useState('')
-  const [selected, setSelected] = useState('')
+  const [selected, setSelected] = useState<string | number>('')
   const canOperate = hasRole('OPERATOR')
   const canSupervise = hasRole('SUPERVISOR')
   const isAdmin = hasRole('ADMIN')
 
   const { data: list, isLoading } = useWorkOrders(statusFilter ? { status: statusFilter } : {})
-  const orders = list?.orders || []
+  const orders = list?.orders ?? []
   const { data: detail } = useWorkOrder(selected)
   const { data: oee } = useOee({})
   const { data: pareto } = useOeePareto({})
@@ -118,9 +131,9 @@ export default function Execution({ session }) {
   const [stopForm, setStopForm] = useState({
     equipment: '', reasonCode: 'MECH', startedAt: '', endedAt: '', description: '',
   })
-  const [message, setMessage] = useState(null)
+  const [message, setMessage] = useState<{ tone: string; text: ReactNode } | null>(null)
 
-  const notify = (tone, text) => setMessage({ tone, text })
+  const notify = (tone: string, text: ReactNode) => setMessage({ tone, text })
 
   const runningCount = orders.filter((o) => o.status === 'RUNNING').length
   const finishedCount = orders.filter((o) => o.status === 'FINISHED').length
@@ -139,20 +152,20 @@ export default function Execution({ session }) {
           notify('success', `工单 ${r.id} 已创建（继承配方版本 ${r.recipeVersion || '—'}）`)
           setOrderForm({ batchId: '', planQty: '', shift: 'DAY', planStart: '', planEnd: '' })
         },
-        onError: (e) => notify('danger', e.message),
+        onError: (e: Error) => notify('danger', e.message),
       },
     )
   }
 
-  const doTransition = (id, target) => {
+  const doTransition = (id: string | number, target: string) => {
     transition.mutate(
       { id, target },
       {
         onSuccess: (r) => {
           const extra = r.confirmNeeded ? ` ⚠ ${r.confirmNote}` : ''
-          notify(r.confirmNeeded ? 'warning' : 'success', `工单 ${id} → ${ORDER_STATUS_TEXT[r.order.status]}${extra}`)
+          notify(r.confirmNeeded ? 'warning' : 'success', `工单 ${id} → ${ORDER_STATUS_TEXT[r.order?.status ?? ''] ?? ''}${extra}`)
         },
-        onError: (e) => notify('danger', e.message),
+        onError: (e: Error) => notify('danger', e.message),
       },
     )
   }
@@ -166,7 +179,7 @@ export default function Execution({ session }) {
           notify('success', `已派工：${dispatchForm.username}`)
           setDispatchForm({ username: '', roleInOrder: 'OPERATOR', capability: 'WEIGHING' })
         },
-        onError: (e) => notify('danger', e.message),
+        onError: (e: Error) => notify('danger', e.message),
       },
     )
   }
@@ -196,7 +209,7 @@ export default function Execution({ session }) {
             inputQty: '', goodQty: '', scrapQty: '', stdMinutes: '', reviewer: '',
           })
         },
-        onError: (e) => notify('danger', e.message),
+        onError: (e: Error) => notify('danger', e.message),
       },
     )
   }
@@ -216,8 +229,8 @@ export default function Execution({ session }) {
           notify(r.merged ? 'warning' : 'success',
             r.merged
               ? `时间窗重叠，已合并至既有停机 #${r.downtime.id}`
-              : `停机已记录（${DOWNTIME_CATEGORY_TEXT[r.downtime.category] || '—'}${r.alarmId ? `，触发报警 ${r.alarmId}` : ''}）`),
-        onError: (e) => notify('danger', e.message),
+              : `停机已记录（${DOWNTIME_CATEGORY_TEXT[r.downtime.category ?? ''] || '—'}${r.alarmId ? `，触发报警 ${r.alarmId}` : ''}）`),
+        onError: (e: Error) => notify('danger', e.message),
       },
     )
   }
@@ -233,8 +246,7 @@ export default function Execution({ session }) {
         <div className="mb-4">
           <Badge tone={TONE_BADGE[message.tone] || 'muted'} pulse={message.tone === 'danger'}>
             {message.text}
-          </Badge>
-        </div>
+          </Badge>        </div>
       )}
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -319,8 +331,8 @@ export default function Execution({ session }) {
                     <td className="py-2 pr-3 text-xs">{o.batchId}</td>
                     <td className="num py-2 pr-3">{o.planQty} {o.unit}</td>
                     <td className="py-2 pr-3">
-                      <Badge tone={TONE_BADGE[ORDER_STATUS_TONE[o.status]] || 'muted'}>
-                        {ORDER_STATUS_TEXT[o.status] || o.status}
+                      <Badge tone={TONE_BADGE[ORDER_STATUS_TONE[o.status ?? ''] ?? 'muted'] ?? 'muted'}>
+                        {ORDER_STATUS_TEXT[o.status ?? ''] || o.status}
                       </Badge>
                     </td>
                     <td className="py-2 pr-3">
@@ -403,9 +415,9 @@ export default function Execution({ session }) {
               <Button className="mt-3 w-full" disabled={!selected || dispatch.isPending} onClick={submitDispatch}>
                 派工（校验资质与健康证）
               </Button>
-              {detail?.assignments?.length > 0 && (
+              {detail && (detail.assignments?.length ?? 0) > 0 && (
                 <div className="mt-3 space-y-1.5">
-                  {detail.assignments.map((a) => (
+                  {detail.assignments?.map((a) => (
                     <div key={a.id} className="flex items-center justify-between rounded-md border border-border px-2 py-1.5 text-xs">
                       <span>
                         {a.displayName || a.username}
@@ -414,7 +426,7 @@ export default function Execution({ session }) {
                       {a.status === 'ACTIVE' ? (
                         <Button size="sm" onClick={() => revoke.mutate({ id: selected, aid: a.id, reason: '手动撤销' }, {
                           onSuccess: () => notify('success', `已撤销 ${a.username} 的派工`),
-                          onError: (e) => notify('danger', e.message),
+                          onError: (e: Error) => notify('danger', e.message),
                         })}>撤销</Button>
                       ) : (
                         <Badge tone="muted">已撤销</Badge>
@@ -445,9 +457,9 @@ export default function Execution({ session }) {
               <Button className="mt-3 w-full" variant="primary" disabled={!selected || report.isPending} onClick={submitReport}>
                 提交报工
               </Button>
-              {detail?.reports?.length > 0 && (
+              {detail && (detail.reports?.length ?? 0) > 0 && (
                 <div className="mt-3 max-h-40 space-y-1.5 overflow-y-auto">
-                  {detail.reports.map((r) => (
+                  {detail.reports?.map((r) => (
                     <div key={r.id} className="rounded-md border border-border px-2 py-1.5 text-xs">
                       <span className="num">#{r.stepNo} {r.stepName}</span>
                       <span className="ml-2 text-faint">
@@ -470,7 +482,7 @@ export default function Execution({ session }) {
                 <Field label="设备"><Input value={stopForm.equipment} onChange={(e) => setStopForm({ ...stopForm, equipment: e.target.value })} placeholder="C-601" /></Field>
                 <Field label="原因码">
                   <select className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-sm" value={stopForm.reasonCode} onChange={(e) => setStopForm({ ...stopForm, reasonCode: e.target.value })}>
-                    {(reasons || []).map((r) => (
+                    {(reasons ?? []).map((r: DowntimeReason) => (
                       <option key={r.code} value={r.code}>
                         {r.name}{r.planned ? '（计划）' : '（非计划）'}
                       </option>

@@ -1,6 +1,7 @@
+import type { ComponentType, ReactNode } from 'react'
 import { useState } from 'react'
 import { Award, BadgeCheck, HeartPulse, ShieldAlert, TriangleAlert } from 'lucide-react'
-import { Badge, Button, Card, Input, Tabs } from '../components/ui'
+import { Badge, Button, Card, Input, Tabs, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import {
   CAPABILITY_TEXT,
@@ -27,7 +28,20 @@ const TABS = [
   { key: 'capability', label: '能力项矩阵' },
 ]
 
-function StatCard({ icon: Icon, label, value, tone = 'primary', sub }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  tone = 'primary',
+  sub,
+}: {
+  icon: ComponentType<{ className?: string }>
+  label: ReactNode
+  value: ReactNode
+  tone?: BadgeTone
+  sub?: ReactNode
+}) {
+  void tone
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between">
@@ -40,7 +54,7 @@ function StatCard({ icon: Icon, label, value, tone = 'primary', sub }) {
   )
 }
 
-function Field({ label, children }) {
+function Field({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
@@ -74,7 +88,7 @@ export default function Personnel() {
       certType: form.certType,
       certName:
         form.certName ||
-        (form.certType === 'HEALTH' ? '食品从业人员健康证' : `${CAPABILITY_TEXT[form.capability]}岗位资质`),
+        (form.certType === 'HEALTH' ? '食品从业人员健康证' : `${(CAPABILITY_TEXT as Record<string, string>)[form.capability]}岗位资质`),
       capability: form.certType === 'HEALTH' ? null : form.capability,
       certNo: form.certNo || null,
       issuedBy: form.issuedBy || null,
@@ -157,7 +171,7 @@ export default function Personnel() {
                       有效期至 {c.validUntil ?? '—'}，剩余 {c.daysLeft} 天
                     </div>
                   </div>
-                  <Badge tone={c.daysLeft <= 7 ? 'danger' : 'warning'}>{c.daysLeft} 天</Badge>
+                  <Badge tone={(c.daysLeft ?? 99) <= 7 ? 'danger' : 'warning'}>{c.daysLeft} 天</Badge>
                 </div>
               ))}
               {!alertsRes?.expiring?.length && <div className="text-xs text-faint">30 天内无到期证书</div>}
@@ -189,13 +203,13 @@ export default function Personnel() {
                 {certs.map((c) => (
                   <tr key={c.id} className="border-b border-border/60">
                     <td className="py-2 pr-3">{c.displayName ?? c.username}</td>
-                    <td className="py-2 pr-3">{CERT_TYPE_TEXT[c.certType] ?? c.certType}</td>
+                    <td className="py-2 pr-3">{(CERT_TYPE_TEXT as Record<string, string>)[c.certType ?? ''] ?? c.certType}</td>
                     <td className="py-2 pr-3">{c.certName}</td>
-                    <td className="py-2 pr-3">{c.capability ? CAPABILITY_TEXT[c.capability] ?? c.capability : '—'}</td>
+                    <td className="py-2 pr-3">{c.capability ? (CAPABILITY_TEXT as Record<string, string>)[c.capability] ?? c.capability : '—'}</td>
                     <td className="py-2 pr-3 text-xs text-muted-foreground">{c.issuedBy ?? '—'}</td>
                     <td className="num py-2 pr-3">{c.validUntil ?? '—'}</td>
                     <td className="py-2 pr-3">
-                      <Badge tone={STATUS_TONE[c.status] ?? 'muted'}>{STATUS_TEXT[c.status] ?? c.status}</Badge>
+                      <Badge tone={(STATUS_TONE as Record<string, BadgeTone>)[c.status ?? ''] ?? 'muted'}>{(STATUS_TEXT as Record<string, string>)[c.status ?? ''] ?? c.status}</Badge>
                     </td>
                     {canManage && (
                       <td className="py-2">

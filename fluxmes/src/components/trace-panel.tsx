@@ -32,7 +32,9 @@ import { cn } from '../lib/utils'
  * - 报表导出（Markdown，含操作人与生成时间水印）
  */
 
-function StatCell({ label, value, unit, tone = 'default' }) {
+type StatTone = 'default' | 'danger' | 'warn' | 'accent'
+
+function StatCell({ label, value, unit, tone = 'default' }: { label: string; value: React.ReactNode; unit?: string; tone?: StatTone }) {
   return (
     <div className="rounded-md bg-muted px-3 py-2">
       <div className="label-tech">{label}</div>
@@ -49,12 +51,12 @@ function StatCell({ label, value, unit, tone = 'default' }) {
   )
 }
 
-export function TraceClosurePanel({ batchId }) {
+export function TraceClosurePanel({ batchId }: { batchId?: string }) {
   const { data: completeness } = useTraceCompleteness(batchId)
   const exportMut = useExportTraceReport()
   const [lotNo, setLotNo] = useState('LOT-001')
   const [query, setQuery] = useState('LOT-001')
-  const [msg, setMsg] = useState(null)
+  const [msg, setMsg] = useState<{ tone: 'accent' | 'danger'; text: string } | null>(null)
 
   const { data: backward } = useTraceBackward(query)
   const { data: impact } = useTraceImpact(query)
@@ -73,13 +75,13 @@ export function TraceClosurePanel({ batchId }) {
             {completeness?.integrity ?? '检查中'}
           </Badge>
         </div>
-        {completeness?.missing?.length > 0 && (
+        {(completeness?.missing?.length ?? 0) > 0 && (
           <div className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2">
             <div className="flex items-center gap-1.5 text-[12px] font-medium text-danger">
-              <FileWarning className="h-3.5 w-3.5" /> 缺失 {completeness.missingCount} 项
+              <FileWarning className="h-3.5 w-3.5" /> 缺失 {completeness?.missingCount} 项
             </div>
             <ul className="mt-1 space-y-0.5 pl-5 text-[12px] text-danger/90">
-              {completeness.missing.map((m) => (
+              {completeness?.missing?.map((m) => (
                 <li key={m} className="list-disc">{m}</li>
               ))}
             </ul>
@@ -97,11 +99,12 @@ export function TraceClosurePanel({ batchId }) {
             disabled={exportMut.isPending || !batchId}
             onClick={async () => {
               try {
+                if (!batchId) return
                 const r = await exportMut.mutateAsync(batchId)
                 downloadMarkdown(r.fileName, r.content)
                 setMsg({ tone: 'accent', text: `已导出 ${r.fileName}（${r.nodeCount} 个链路节点）` })
               } catch (e) {
-                setMsg({ tone: 'danger', text: String(e.message || e) })
+                setMsg({ tone: 'danger', text: String((e as Error)?.message ?? e) })
               }
             }}
           >
@@ -150,20 +153,20 @@ export function TraceClosurePanel({ batchId }) {
           <StatCell label="涉及产量" value={impact?.totalYieldT ?? '—'} unit="t" />
         </div>
 
-        {impact?.suggestions?.length > 0 && (
+        {(impact?.suggestions?.length ?? 0) > 0 && (
           <div className="mt-3 rounded-md border border-warn/30 bg-warn/5 px-3 py-2">
             <div className="flex items-center gap-1.5 text-[12px] font-medium text-warn">
               <ShieldAlert className="h-3.5 w-3.5" /> 处置建议
             </div>
             <ul className="mt-1 space-y-0.5 pl-5 text-[12px] text-warn/90">
-              {impact.suggestions.map((s) => (
+              {impact?.suggestions?.map((s) => (
                 <li key={s} className="list-disc">{s}</li>
               ))}
             </ul>
           </div>
         )}
 
-        {backward?.batches?.length > 0 && (
+        {(backward?.batches?.length ?? 0) > 0 && (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
@@ -176,7 +179,7 @@ export function TraceClosurePanel({ batchId }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {backward.batches.map((b) => (
+                {backward?.batches?.map((b) => (
                   <tr key={b.batchId}>
                     <td className="num py-2.5 pr-2 font-medium text-primary">{b.batchId}</td>
                     <td className="py-2.5 pr-2">{b.product ?? '—'}</td>

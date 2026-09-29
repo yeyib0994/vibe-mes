@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { request } from './http'
+import type { BadgeTone } from '../components/ui'
 
 /**
  * 外部系统集成（Phase J）。
@@ -11,32 +12,62 @@ import { request } from './http'
 
 const HEALTH_MS = 30_000
 
+/** 单个外部系统的健康与模式（dataSource 为硬约定，见章程 P4）。 */
+export type SystemHealth = {
+  system: string
+  mode: string
+  endpoint: string
+  available: boolean
+  detail: string
+  lastSuccessAt: string | null
+  dataSource: string | null
+  [key: string]: unknown
+}
+
+/** 采集器统计（SCADA 采集周期与最近一次写入）。 */
+export type CollectorStats = {
+  lastBatchSize?: number
+  intervalSeconds?: number
+  storedCount?: number
+  lastRunStatus?: string
+  lastRunAt?: string
+  [key: string]: unknown
+}
+
+export type IntegrationHealthResponse = { systems?: SystemHealth[]; [key: string]: unknown }
+export type IntegrationSummaryResponse = {
+  systems?: SystemHealth[]
+  collector?: CollectorStats
+  mockCount?: number
+  [key: string]: unknown
+}
+
 // 四个系统的模式与连通状态（只读最近已知状态，不会真的去连外部系统）。
 export function useIntegrationHealth() {
-  return useQuery({
+  return useQuery<IntegrationHealthResponse>({
     queryKey: ['integration', 'health'],
-    queryFn: () => request('/api/integration/health'),
+    queryFn: () => request<IntegrationHealthResponse>('/api/integration/health'),
     refetchInterval: HEALTH_MS,
   })
 }
 
 // 集成总览：健康 + 采集器统计 + 是否含 mock 数据源。
 export function useIntegrationSummary() {
-  return useQuery({
+  return useQuery<IntegrationSummaryResponse>({
     queryKey: ['integration', 'summary'],
-    queryFn: () => request('/api/integration/summary'),
+    queryFn: () => request<IntegrationSummaryResponse>('/api/integration/summary'),
     refetchInterval: HEALTH_MS,
   })
 }
 
-const invalidate = (qc) => qc.invalidateQueries({ queryKey: ['integration'] })
+const invalidate = (qc: ReturnType<typeof useQueryClient>) => qc.invalidateQueries({ queryKey: ['integration'] })
 
 /** 主动探测指定系统（值班长+，有副作用：会真的读一次外部系统）。 */
 export function useProbeIntegration() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (system: string) =>
-      request(`/api/integration/${encodeURIComponent(system)}/probe`, { method: 'POST' }),
+      request<{ detail?: string }>(`/api/integration/${encodeURIComponent(system)}/probe`, { method: 'POST' }),
     onSuccess: () => {
       invalidate(qc)
       // 采集会写 equipment_metric，趋势随之变化
@@ -49,7 +80,7 @@ export function useProbeIntegration() {
 export function useCollectMetrics() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => request('/api/integration/scada/collect', { method: 'POST' }),
+    mutationFn: () => request<{ detail?: string }>('/api/integration/scada/collect', { method: 'POST' }),
     onSuccess: () => {
       invalidate(qc)
       qc.invalidateQueries({ queryKey: ['equipment'] })
@@ -61,7 +92,7 @@ export function useCollectMetrics() {
 export function usePollLims() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => request('/api/integration/lims/results', { method: 'POST' }),
+    mutationFn: () => request<{ detail?: string }>('/api/integration/lims/results', { method: 'POST' }),
     onSuccess: () => {
       invalidate(qc)
       qc.invalidateQueries({ queryKey: ['quality'] })
@@ -73,7 +104,7 @@ export function usePollLims() {
 export function useResetLims() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => request('/api/integration/lims/reset', { method: 'POST' }),
+    mutationFn: () => request<{ detail?: string }>('/api/integration/lims/reset', { method: 'POST' }),
     onSuccess: () => invalidate(qc),
   })
 }
@@ -82,7 +113,7 @@ export function useResetLims() {
 export function usePullErp() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => request('/api/integration/erp/work-orders', { method: 'POST' }),
+    mutationFn: () => request<{ detail?: string }>('/api/integration/erp/work-orders', { method: 'POST' }),
     onSuccess: () => invalidate(qc),
   })
 }
@@ -92,13 +123,13 @@ export function useTestWms() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: Record<string, unknown>) =>
-      request('/api/integration/wms/test', { method: 'POST', body }),
+      request<{ detail?: string }>('/api/integration/wms/test', { method: 'POST', body }),
     onSuccess: () => invalidate(qc),
   })
 }
 
 /** 数据来源标识 → 中文说明 + 徽标色调。MOCK 一律走警示色，防止演示数据被误认。 */
-export const SOURCE_META = {
+export const SOURCE_META: Record<string, { label: string; tone: BadgeTone }> = {
   MOCK: { label: '模拟数据', tone: 'warn' },
   OPCUA: { label: 'OPC-UA', tone: 'accent' },
   LIMS: { label: 'LIMS', tone: 'accent' },
@@ -107,7 +138,7 @@ export const SOURCE_META = {
   MANUAL: { label: '人工录入', tone: 'muted' },
 }
 
-export function sourceMeta(dataSource) {
+export function sourceMeta(dataSource?: string | null): { label: string; tone: BadgeTone } {
   if (!dataSource) return { label: '来源未知', tone: 'danger' }
   return SOURCE_META[dataSource] ?? { label: dataSource, tone: 'muted' }
 }

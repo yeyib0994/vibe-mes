@@ -6,15 +6,21 @@ import { clearSession, getToken } from '../lib/auth'
 
 /** 401 订阅者：http 层不直接操作路由，由 App 监听决定渲染登录页。 */
 const unauthorizedListeners = new Set<() => void>()
-export function onUnauthorized(fn: () => void) {
+export function onUnauthorized(fn: () => void): () => void {
   unauthorizedListeners.add(fn)
-  return () => unauthorizedListeners.delete(fn)
+  return () => {
+    unauthorizedListeners.delete(fn)
+  }
 }
 
-export async function request(
+/**
+ * 泛型化请求：调用点通过 `request<T>` 声明期望的响应体类型，
+ * 未显式指定时回落为 `unknown`（禁止隐式 any 扩散）。
+ */
+export async function request<T = unknown>(
   path: string,
   { method = 'GET', body, signal }: { method?: string; body?: unknown; signal?: AbortSignal } = {},
-) {
+): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {}
   if (body) headers['Content-Type'] = 'application/json'
@@ -44,6 +50,6 @@ export async function request(
     const err = Object.assign(new Error(message), { status: res.status })
     throw err
   }
-  if (res.status === 204) return null
-  return res.json()
+  if (res.status === 204) return null as T
+  return res.json() as Promise<T>
 }

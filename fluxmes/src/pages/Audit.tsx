@@ -1,3 +1,4 @@
+import type { ComponentType, ReactNode } from 'react'
 import { useState } from 'react'
 import {
   BadgeCheck,
@@ -8,7 +9,7 @@ import {
   ShieldAlert,
   TrendingUp,
 } from 'lucide-react'
-import { Badge, Button, Card, Input } from '../components/ui'
+import { Badge, Button, Card, Input, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import {
   AUDIT_TYPES,
@@ -29,16 +30,31 @@ import { hasRole } from '../lib/auth'
  * 内审计划 → 发现项分级（条款关联）→ 一键转 CAPA → 关闭门禁（critical/major 未转 CAPA 拒绝关闭）。
  */
 
-const AUDIT_STATUS = {
+/** 内审状态 → 文案/色调。 */
+type AuditStatusKey = 'planned' | 'in_progress' | 'reported' | 'closed'
+
+const AUDIT_STATUS: Record<AuditStatusKey, { label: string; tone: BadgeTone }> = {
   planned: { label: '已计划', tone: 'muted' },
   in_progress: { label: '审核中', tone: 'primary' },
   reported: { label: '已出报告', tone: 'warn' },
   closed: { label: '已关闭', tone: 'success' },
 }
 
-const NEXT_STATUS = { planned: 'in_progress', in_progress: 'reported' }
+const NEXT_STATUS: Partial<Record<AuditStatusKey, AuditStatusKey>> = { planned: 'in_progress', in_progress: 'reported' }
 
-function StatCard({ icon: Icon, label, value, sub, tone }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  icon: ComponentType<{ className?: string }>
+  label: ReactNode
+  value: ReactNode
+  sub?: ReactNode
+  tone?: BadgeTone
+}) {
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between">
@@ -53,7 +69,7 @@ function StatCard({ icon: Icon, label, value, sub, tone }) {
   )
 }
 
-function Field({ label, children }) {
+function Field({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
@@ -64,7 +80,7 @@ function Field({ label, children }) {
 
 export default function Audit() {
   const year = new Date().getFullYear()
-  const [selected, setSelected] = useState(null)
+  const [selected, setSelected] = useState<string | number | null>(null)
   const canManage = hasRole('ADMIN')
   const canRegister = hasRole('QC')
 
@@ -183,13 +199,13 @@ export default function Audit() {
                   </td>
                   <td className="num py-2 pr-3 text-xs">
                     {a.findingCount}
-                    {a.blockingFindings > 0 && (
+                    {(a.blockingFindings ?? 0) > 0 && (
                       <span className="ml-1 text-danger">（{a.blockingFindings} 项待转办）</span>
                     )}
                   </td>
                   <td className="py-2 pr-3">
-                    <Badge tone={AUDIT_STATUS[a.status]?.tone ?? 'muted'}>
-                      {AUDIT_STATUS[a.status]?.label ?? a.status}
+                    <Badge tone={AUDIT_STATUS[a.status as AuditStatusKey]?.tone ?? 'muted'}>
+                      {AUDIT_STATUS[a.status as AuditStatusKey]?.label ?? a.status}
                     </Badge>
                   </td>
                   <td className="py-2 text-right">
@@ -307,15 +323,28 @@ function AuditDetail({
   canManage,
   canRegister,
   transition,
+  addFinding,
   toCapa,
   closeAudit,
   findingForm,
   setFindingForm,
   onSubmitFinding,
+}: {
+  id: string | number
+  canManage: boolean
+  canRegister: boolean
+  transition: ReturnType<typeof useTransitionAudit>
+  addFinding: ReturnType<typeof useAddFinding>
+  toCapa: ReturnType<typeof useFindingToCapa>
+  closeAudit: ReturnType<typeof useCloseAudit>
+  findingForm: { clause: string; severity: string; description: string; area: string; owner: string }
+  setFindingForm: (v: { clause: string; severity: string; description: string; area: string; owner: string }) => void
+  onSubmitFinding: (id: string | number) => void
 }) {
+  void addFinding
   const { data: a } = useAuditDetail(id)
   const findings = a?.findings ?? []
-  const next = NEXT_STATUS[a?.status]
+  const next = NEXT_STATUS[a?.status as AuditStatusKey]
 
   if (!a) return <div className="mt-4 text-xs text-faint">加载内审详情…</div>
 
@@ -323,8 +352,8 @@ function AuditDetail({
     <div className="mt-4 rounded border border-border p-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="num text-[13px] font-medium">{a.id}</span>
-        <Badge tone={AUDIT_STATUS[a.status]?.tone ?? 'muted'}>
-          {AUDIT_STATUS[a.status]?.label ?? a.status}
+        <Badge tone={AUDIT_STATUS[a.status as AuditStatusKey]?.tone ?? 'muted'}>
+          {AUDIT_STATUS[a.status as AuditStatusKey]?.label ?? a.status}
         </Badge>
         <span className="text-xs text-faint">{a.scope}</span>
         <div className="ml-auto flex items-center gap-2">
@@ -374,7 +403,7 @@ function AuditDetail({
               <tr key={f.id} className="border-b border-border/60">
                 <td className="num py-2 pr-3">{f.seq}</td>
                 <td className="py-2 pr-3">
-                  <Badge tone={FINDING_TONE[f.severity] ?? 'muted'}>{f.severityLabel}</Badge>
+                  <Badge tone={(FINDING_TONE as Record<string, BadgeTone>)[f.severity ?? ''] ?? 'muted'}>{f.severityLabel}</Badge>
                 </td>
                 <td className="num py-2 pr-3 text-xs">{f.clause ?? '—'}</td>
                 <td className="py-2 pr-3">{f.description}</td>

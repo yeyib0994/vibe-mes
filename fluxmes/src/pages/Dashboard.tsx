@@ -8,10 +8,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ChevronRight, RefreshCw, TriangleAlert } from 'lucide-react'
 import { LineSwitcher, ShiftReportActions, SiteSwitcher } from '../components/dashboard-controls'
-import { Badge, Button, Card, Dot, Progress } from '../components/ui'
+import { Badge, Button, Card, Dot, Progress, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import { AXIS_TICK, ChartTip } from '../components/charts'
 import { PLAN_RATE } from '../data/mes'
@@ -20,10 +20,22 @@ import { useCockpit } from '../api/dashboard'
 import StalenessBadge from '../components/StalenessBadge'
 import { cn } from '../lib/utils'
 
-const EQUIP_DOT = { running: 'accent', alarm: 'danger', cleaning: 'warn', idle: 'muted', standby: 'primary' }
-const EQUIP_TEXT = { running: 'text-accent', alarm: 'text-danger', cleaning: 'text-warn', idle: 'text-muted-foreground', standby: 'text-primary' }
+type EquipStatusKey = 'running' | 'alarm' | 'cleaning' | 'idle' | 'standby'
 
-function KpiCard({ label, badge, value, unit, sub, extra }) {
+const EQUIP_DOT: Record<string, BadgeTone> = { running: 'accent', alarm: 'danger', cleaning: 'warn', idle: 'muted', standby: 'primary' }
+const EQUIP_TEXT: Record<string, string> = { running: 'text-accent', alarm: 'text-danger', cleaning: 'text-warn', idle: 'text-muted-foreground', standby: 'text-primary' }
+
+const ALARM_LEVEL = alarmLevelMap as Record<string, { label?: string; tone?: BadgeTone }>
+
+function KpiCard({ label, badge, value, unit, sub, extra }: {
+  label?: ReactNode
+  badge?: ReactNode
+  value?: ReactNode
+  unit?: ReactNode
+  sub?: ReactNode
+  extra?: ReactNode
+  [key: string]: unknown
+}) {
   return (
     <Card className="card-pad" data-component="kpi" data-qoder-id="qel-kpi-263ea19e" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-kpi-263ea19e&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;KpiCard&quot;,&quot;elementRole&quot;:&quot;kpi&quot;,&quot;loc&quot;:{&quot;line&quot;:24,&quot;column&quot;:5}}">
       <div className="flex items-center justify-between gap-2" data-qoder-id="qel-flex-d8797369" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-flex-d8797369&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;KpiCard&quot;,&quot;elementRole&quot;:&quot;flex&quot;,&quot;loc&quot;:{&quot;line&quot;:25,&quot;column&quot;:7}}">
@@ -40,10 +52,10 @@ function KpiCard({ label, badge, value, unit, sub, extra }) {
   )
 }
 
-export default function Dashboard({ onNavigate }) {
+export default function Dashboard({ onNavigate }: { onNavigate?: (key: string) => void }) {
   // G4 · 厂区 + D2 · 产线双维度切换
-  const [site, setSite] = useState(undefined)
-  const [line, setLine] = useState(undefined)
+  const [site, setSite] = useState<string | undefined>(undefined)
+  const [line, setLine] = useState<string | undefined>(undefined)
   const { data: cockpit } = useCockpit(site, line)
   const kpis = cockpit?.kpis
   const equipment = cockpit?.equipment ?? []
@@ -175,7 +187,7 @@ export default function Dashboard({ onNavigate }) {
           <div data-qoder-id="qel-div-922e70cc" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-div-922e70cc&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;div&quot;,&quot;loc&quot;:{&quot;line&quot;:135,&quot;column&quot;:11}}">
             {equipment.map((e) => (
               <div key={e.code} className="flex items-center gap-3 border-b border-border py-2.5 last:border-0" data-qoder-id="qel-flex-af34dd2d" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-flex-af34dd2d&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;flex&quot;,&quot;loc&quot;:{&quot;line&quot;:137,&quot;column&quot;:15}}">
-                <Dot tone={EQUIP_DOT[e.status]} pulse={e.status === 'alarm'}  data-qoder-id="qel-dot-b12b73a2" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-dot-b12b73a2&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;dot&quot;,&quot;loc&quot;:{&quot;line&quot;:138,&quot;column&quot;:17}}"/>
+                <Dot tone={EQUIP_DOT[e.status ?? 'idle'] ?? 'muted'} pulse={e.status === 'alarm'}  data-qoder-id="qel-dot-b12b73a2" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-dot-b12b73a2&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;dot&quot;,&quot;loc&quot;:{&quot;line&quot;:138,&quot;column&quot;:17}}"/>
                 <div className="min-w-0 flex-1" data-qoder-id="qel-min-w-0-17682b21" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-min-w-0-17682b21&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;min-w-0&quot;,&quot;loc&quot;:{&quot;line&quot;:139,&quot;column&quot;:17}}">
                   <div className="flex items-center gap-2" data-qoder-id="qel-flex-ac34d874" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-flex-ac34d874&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;flex&quot;,&quot;loc&quot;:{&quot;line&quot;:140,&quot;column&quot;:19}}">
                     <span className="num text-xs text-muted-foreground" data-qoder-id="qel-num-03d55f8f" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-num-03d55f8f&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;num&quot;,&quot;loc&quot;:{&quot;line&quot;:141,&quot;column&quot;:21}}">{e.code}</span>
@@ -184,7 +196,7 @@ export default function Dashboard({ onNavigate }) {
                   <div className="num mt-0.5 truncate text-[11px] text-faint" data-qoder-id="qel-num-3568aa8d" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-num-3568aa8d&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;num&quot;,&quot;loc&quot;:{&quot;line&quot;:144,&quot;column&quot;:19}}">{e.params}</div>
                 </div>
                 {e.status === 'alarm' && <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-danger"  data-qoder-id="qel-h-3-5-9788cb5b" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-h-3-5-9788cb5b&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;h-3-5&quot;,&quot;loc&quot;:{&quot;line&quot;:146,&quot;column&quot;:42}}"/>}
-                <span className={cn('shrink-0 text-xs font-medium', EQUIP_TEXT[e.status])} data-qoder-id="qel-span-d390e48e" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-span-d390e48e&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;span&quot;,&quot;loc&quot;:{&quot;line&quot;:147,&quot;column&quot;:17}}">{e.statusText}</span>
+                <span className={cn('shrink-0 text-xs font-medium', EQUIP_TEXT[e.status ?? 'idle'] ?? '')} data-qoder-id="qel-span-d390e48e" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-span-d390e48e&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;span&quot;,&quot;loc&quot;:{&quot;line&quot;:147,&quot;column&quot;:17}}">{e.statusText}</span>
               </div>
             ))}
           </div>
@@ -196,7 +208,7 @@ export default function Dashboard({ onNavigate }) {
         <Card className="card-pad xl:col-span-2" data-component="running-batches" data-qoder-id="qel-running-batches-621d43ba" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-running-batches-621d43ba&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;running-batches&quot;,&quot;loc&quot;:{&quot;line&quot;:156,&quot;column&quot;:9}}">
           <div className="mb-2 flex items-center justify-between" data-qoder-id="qel-mb-2-f2bb208a" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-mb-2-f2bb208a&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;mb-2&quot;,&quot;loc&quot;:{&quot;line&quot;:157,&quot;column&quot;:11}}">
             <div className="text-[15px] font-semibold tracking-tight" data-qoder-id="qel-text-15px-3b8e849b" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-text-15px-3b8e849b&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;text-15px&quot;,&quot;loc&quot;:{&quot;line&quot;:158,&quot;column&quot;:13}}">在制批次</div>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate('batches')} data-qoder-id="qel-button-2ffee211" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-button-2ffee211&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;button&quot;,&quot;loc&quot;:{&quot;line&quot;:159,&quot;column&quot;:13}}">
+            <Button variant="ghost" size="sm" onClick={() => onNavigate?.('batches')} data-qoder-id="qel-button-2ffee211" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-button-2ffee211&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;button&quot;,&quot;loc&quot;:{&quot;line&quot;:159,&quot;column&quot;:13}}">
               全部批次 <ChevronRight className="h-3.5 w-3.5"  data-qoder-id="qel-h-3-5-fd73f535" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-h-3-5-fd73f535&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;h-3-5&quot;,&quot;loc&quot;:{&quot;line&quot;:160,&quot;column&quot;:20}}"/>
             </Button>
           </div>
@@ -222,7 +234,7 @@ export default function Dashboard({ onNavigate }) {
         <Card className="card-pad" data-component="recent-alarms" data-qoder-id="qel-recent-alarms-1fb6eada" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-recent-alarms-1fb6eada&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;recent-alarms&quot;,&quot;loc&quot;:{&quot;line&quot;:182,&quot;column&quot;:9}}">
           <div className="mb-2 flex items-center justify-between" data-qoder-id="qel-mb-2-5ac04170" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-mb-2-5ac04170&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;mb-2&quot;,&quot;loc&quot;:{&quot;line&quot;:183,&quot;column&quot;:11}}">
             <div className="text-[15px] font-semibold tracking-tight" data-qoder-id="qel-text-15px-af93b865" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-text-15px-af93b865&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;text-15px&quot;,&quot;loc&quot;:{&quot;line&quot;:184,&quot;column&quot;:13}}">最新报警</div>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate('alarms')} data-qoder-id="qel-button-9c040943" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-button-9c040943&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;button&quot;,&quot;loc&quot;:{&quot;line&quot;:185,&quot;column&quot;:13}}">
+            <Button variant="ghost" size="sm" onClick={() => onNavigate?.('alarms')} data-qoder-id="qel-button-9c040943" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-button-9c040943&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;button&quot;,&quot;loc&quot;:{&quot;line&quot;:185,&quot;column&quot;:13}}">
               报警中心 <ChevronRight className="h-3.5 w-3.5"  data-qoder-id="qel-h-3-5-6d7922b3" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-h-3-5-6d7922b3&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;h-3-5&quot;,&quot;loc&quot;:{&quot;line&quot;:186,&quot;column&quot;:20}}"/>
             </Button>
           </div>
@@ -230,7 +242,7 @@ export default function Dashboard({ onNavigate }) {
             {recentAlarms.map((a) => (
               <div key={a.id} className="border-b border-border py-2.5 last:border-0" data-qoder-id="qel-border-b-d179680e" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-border-b-d179680e&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;border-b&quot;,&quot;loc&quot;:{&quot;line&quot;:191,&quot;column&quot;:15}}">
                 <div className="flex items-center gap-2" data-qoder-id="qel-flex-ac37170b" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-flex-ac37170b&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;flex&quot;,&quot;loc&quot;:{&quot;line&quot;:192,&quot;column&quot;:17}}">
-                  <Dot tone={alarmLevelMap[a.level].tone} pulse={a.status === 'unacked'}  data-qoder-id="qel-dot-bc2dc38a" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-dot-bc2dc38a&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;dot&quot;,&quot;loc&quot;:{&quot;line&quot;:193,&quot;column&quot;:19}}"/>
+                  <Dot tone={ALARM_LEVEL[a.level ?? '']?.tone ?? 'muted'} pulse={a.status === 'unacked'}  data-qoder-id="qel-dot-bc2dc38a" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-dot-bc2dc38a&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;dot&quot;,&quot;loc&quot;:{&quot;line&quot;:193,&quot;column&quot;:19}}"/>
                   <span className="truncate text-[13px] font-medium" data-qoder-id="qel-truncate-1bbabebf" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-truncate-1bbabebf&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;truncate&quot;,&quot;loc&quot;:{&quot;line&quot;:194,&quot;column&quot;:19}}">{a.content}</span>
                   <span className="num ml-auto shrink-0 text-[11px] text-faint" data-qoder-id="qel-num-83b813fb" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-num-83b813fb&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;num&quot;,&quot;loc&quot;:{&quot;line&quot;:195,&quot;column&quot;:19}}">{a.time}</span>
                 </div>

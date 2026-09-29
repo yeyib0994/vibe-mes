@@ -1,28 +1,40 @@
+import type { ReactNode } from 'react'
 import { useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ShieldCheck } from 'lucide-react'
-import { Badge, Button, Card, Tabs } from '../components/ui'
+import { Badge, Button, Card, Tabs, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import { AXIS_TICK, ChartTip } from '../components/charts'
 import { alarmLevelMap, alarmTopSources, alarmTrend } from '../data/mes'
-import { useAlarms, useAckAlarm, useRecoverAlarm, useAlarmTrend, useAlarmTopSources, useAlarmStats } from '../api/alarms'
+import { useAlarms, useAckAlarm, useRecoverAlarm, useAlarmTrend, useAlarmTopSources, useAlarmStats, type AlarmItem } from '../api/alarms'
 import { SuppressionPanel } from '../components/alarm-suppression'
 import StalenessBadge from '../components/StalenessBadge'
 
-const STATUS_MAP = {
+const STATUS_MAP: Record<string, { label: string; tone: BadgeTone }> = {
   unacked: { label: '未确认', tone: 'danger' },
   acked: { label: '已确认', tone: 'warn' },
   recovered: { label: '已恢复', tone: 'muted' },
 }
 
-function fmtWhen(a) {
+function fmtWhen(a: AlarmItem) {
   if (!a.triggeredAt) return `08-26 ${a.time}`
   const d = new Date(a.triggeredAt)
-  const p = (n) => String(n).padStart(2, '0')
+  const p = (n: number) => String(n).padStart(2, '0')
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${a.time ?? `${p(d.getHours())}:${p(d.getMinutes())}`}`
 }
 
-function AlarmStat({ label, value, unit, badge }) {
+function AlarmStat({
+  label,
+  value,
+  unit,
+  badge,
+}: {
+  label: ReactNode
+  value: ReactNode
+  unit?: ReactNode
+  badge?: ReactNode
+  [key: string]: unknown
+}) {
   return (
     <Card className="card-pad" data-component="alarm-kpi" data-qoder-id="qel-alarm-kpi-fcec10f1" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarm-kpi-fcec10f1&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;AlarmStat&quot;,&quot;elementRole&quot;:&quot;alarm-kpi&quot;,&quot;loc&quot;:{&quot;line&quot;:17,&quot;column&quot;:5}}">
       <div className="flex items-center justify-between" data-qoder-id="qel-flex-d276474e" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-flex-d276474e&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;AlarmStat&quot;,&quot;elementRole&quot;:&quot;flex&quot;,&quot;loc&quot;:{&quot;line&quot;:18,&quot;column&quot;:7}}">
@@ -46,14 +58,14 @@ export default function Alarms() {
   const { data: statsRaw } = useAlarmStats()
   const [tab, setTab] = useState('all')
 
-  const alarms = alarmsRaw?.alarms ?? []
+  const alarms: AlarmItem[] = alarmsRaw?.alarms ?? []
   const trend = trendRaw ?? alarmTrend
   const sources = sourcesRaw ?? alarmTopSources
   const stats = statsRaw ?? null
 
   const counts = useMemo(() => {
-    const c = { all: alarms.length, unacked: 0, acked: 0, recovered: 0 }
-    for (const a of alarms) c[a.status] += 1
+    const c: Record<string, number> = { all: alarms.length, unacked: 0, acked: 0, recovered: 0 }
+    for (const a of alarms) c[a.status] = (c[a.status] ?? 0) + 1
     return c
   }, [alarms])
 
@@ -65,7 +77,7 @@ export default function Alarms() {
   ]
 
   const filtered = alarms.filter((a) => tab === 'all' || a.status === tab)
-  const maxSource = sources.length ? Math.max(...sources.map((s) => s.count)) : 1
+  const maxSource = sources.length ? Math.max(...sources.map((s) => s.count ?? 0)) : 1
 
   return (
     <div className="mx-auto max-w-[1600px] p-6" data-component="page-alarms" data-qoder-id="qel-page-alarms-8211c23b" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-page-alarms-8211c23b&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;page-alarms&quot;,&quot;loc&quot;:{&quot;line&quot;:55,&quot;column&quot;:5}}">
@@ -78,7 +90,7 @@ export default function Alarms() {
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4" data-qoder-id="qel-grid-2c594361" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-grid-2c594361&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;grid&quot;,&quot;loc&quot;:{&quot;line&quot;:62,&quot;column&quot;:7}}">
         <AlarmStat label="今日报警" value={stats ? stats.todayTotal : '17'} unit="条" badge={<Badge tone="warn" dot={false}>活跃 {stats ? stats.active : '—'}</Badge>}  data-qoder-id="qel-alarmstat-27018e6e" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-27018e6e&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:63,&quot;column&quot;:9}}"/>
-        <AlarmStat label="活跃报警" value={stats ? stats.active : '3'} unit="条" badge={<Badge tone="danger" pulse={stats ? stats.unackedCritical > 0 : true}>含严重 {stats ? stats.unackedCritical : '—'} · 超时 {stats ? stats.overdueUnacked : '—'}</Badge>}  data-qoder-id="qel-alarmstat-28019001" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-28019001&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:64,&quot;column&quot;:9}}"/>
+        <AlarmStat label="活跃报警" value={stats ? stats.active : '3'} unit="条" badge={<Badge tone="danger" pulse={stats ? (stats.unackedCritical ?? 0) > 0 : true}>含严重 {stats ? stats.unackedCritical : '—'} · 超时 {stats ? stats.overdueUnacked : '—'}</Badge>}  data-qoder-id="qel-alarmstat-28019001" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-28019001&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:64,&quot;column&quot;:9}}"/>
         <AlarmStat label="平均响应时长" value={stats ? (stats.avgResponseMinutes ?? '—') : '4.2'} unit="min" badge={<Badge tone="accent" dot={false}>目标 ≤ 5 min</Badge>}  data-qoder-id="qel-alarmstat-25018b48" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-25018b48&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:65,&quot;column&quot;:9}}"/>
         <AlarmStat label="本班确认率" value={stats ? stats.ackRatePercent : '82'} unit="%"  data-qoder-id="qel-alarmstat-26018cdb" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-26018cdb&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:66,&quot;column&quot;:9}}"/>
       </div>
@@ -157,14 +169,14 @@ export default function Alarms() {
             </thead>
             <tbody className="divide-y divide-border" data-qoder-id="qel-divide-y-f9ce2ae6" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-divide-y-f9ce2ae6&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;divide-y&quot;,&quot;loc&quot;:{&quot;line&quot;:139,&quot;column&quot;:13}}">
               {filtered.map((a) => {
-                const lv = alarmLevelMap[a.level]
-                const st = STATUS_MAP[a.status]
+                const lv = (alarmLevelMap as Record<string, { label?: string; tone?: string }>)[a.level ?? '']
+                const st = STATUS_MAP[a.status] ?? { label: a.status, tone: 'muted' as BadgeTone }
                 return (
                   <tr key={a.id} className="transition-colors hover:bg-muted" data-qoder-id="qel-transition-colors-cdda1528" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-transition-colors-cdda1528&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;transition-colors&quot;,&quot;loc&quot;:{&quot;line&quot;:144,&quot;column&quot;:19}}">
                     <td className="num px-4 py-3 text-xs text-muted-foreground" data-qoder-id="qel-num-23c2e6c9" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-num-23c2e6c9&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;num&quot;,&quot;loc&quot;:{&quot;line&quot;:145,&quot;column&quot;:21}}">{fmtWhen(a)}</td>
                     <td className="num px-3 py-3 text-primary" data-qoder-id="qel-num-22c2e536" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-num-22c2e536&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;num&quot;,&quot;loc&quot;:{&quot;line&quot;:146,&quot;column&quot;:21}}">{a.id}</td>
                     <td className="px-3 py-3" data-qoder-id="qel-px-3-cd866ab5" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-px-3-cd866ab5&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;px-3&quot;,&quot;loc&quot;:{&quot;line&quot;:147,&quot;column&quot;:21}}">
-                      <Badge tone={lv.tone} pulse={a.level === 'critical' && a.status === 'unacked'} data-qoder-id="qel-badge-29f1ee12" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-badge-29f1ee12&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;badge&quot;,&quot;loc&quot;:{&quot;line&quot;:148,&quot;column&quot;:23}}">{lv.label}</Badge>
+                      <Badge tone={(lv?.tone ?? 'muted') as BadgeTone} pulse={a.level === 'critical' && a.status === 'unacked'} data-qoder-id="qel-badge-29f1ee12" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-badge-29f1ee12&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;badge&quot;,&quot;loc&quot;:{&quot;line&quot;:148,&quot;column&quot;:23}}">{lv?.label ?? a.level}</Badge>
                     </td>
                     <td className="num px-3 py-3 text-muted-foreground" data-qoder-id="qel-num-9fbfd866" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-num-9fbfd866&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;num&quot;,&quot;loc&quot;:{&quot;line&quot;:150,&quot;column&quot;:21}}">{a.source}</td>
                     <td className="px-3 py-3" data-qoder-id="qel-px-3-d08430d7" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-px-3-d08430d7&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;px-3&quot;,&quot;loc&quot;:{&quot;line&quot;:151,&quot;column&quot;:21}}">{a.content}</td>

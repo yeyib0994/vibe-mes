@@ -7,10 +7,11 @@ import { hasRole } from '../lib/auth'
  * F3 · 电子批记录 eBR：展示批次各工序的工艺设定值 vs 实际值，
  * 关键工序须由另一人复核（双人复核，复核人不得为操作人）。
  */
-const STATUS_TONE = { DONE: 'success', RUNNING: 'primary', PENDING: 'muted', SKIPPED: 'warning' }
-const STATUS_TEXT = { DONE: '已完成', RUNNING: '执行中', PENDING: '待执行', SKIPPED: '跳过' }
+type EbrStatus = 'DONE' | 'RUNNING' | 'PENDING' | 'SKIPPED'
+const STATUS_TONE: Record<EbrStatus, 'success' | 'primary' | 'muted' | 'warning'> = { DONE: 'success', RUNNING: 'primary', PENDING: 'muted', SKIPPED: 'warning' }
+const STATUS_TEXT: Record<EbrStatus, string> = { DONE: '已完成', RUNNING: '执行中', PENDING: '待执行', SKIPPED: '跳过' }
 
-function Params({ value }) {
+function Params({ value }: { value?: unknown }) {
   if (!value || typeof value !== 'object') return <span className="text-faint">—</span>
   return (
     <div className="flex flex-wrap gap-1">
@@ -23,7 +24,7 @@ function Params({ value }) {
   )
 }
 
-export default function EbrPanel({ batchId }) {
+export default function EbrPanel({ batchId }: { batchId?: string }) {
   const { data, isLoading } = useEbr(batchId)
   const review = useReviewStep()
 
@@ -78,7 +79,7 @@ export default function EbrPanel({ batchId }) {
                       {s.reviewer}
                     </span>
                   ) : s.status === 'DONE' && hasRole('QC') ? (
-                    <Button variant="ghost" disabled={review.isPending} onClick={() => review.mutate(s.id)}>
+                    <Button variant="ghost" disabled={review.isPending} onClick={() => review.mutate(s.id as string | number)}>
                       复核
                     </Button>
                   ) : (
@@ -86,7 +87,7 @@ export default function EbrPanel({ batchId }) {
                   )}
                 </td>
                 <td className="py-2">
-                  <Badge tone={STATUS_TONE[s.status]}>{STATUS_TEXT[s.status]}</Badge>
+                  <Badge tone={STATUS_TONE[s.status as EbrStatus] ?? 'muted'}>{STATUS_TEXT[s.status as EbrStatus] ?? s.status}</Badge>
                 </td>
               </tr>
             ))}

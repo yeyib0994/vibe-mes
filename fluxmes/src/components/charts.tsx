@@ -6,7 +6,15 @@ export const AXIS_TICK = {
   fontFamily: "'Geist Mono', ui-monospace, monospace",
 }
 
-export function ChartTip({ active, payload, label, unit = '' }) {
+/** recharts Tooltip content 渲染器 props（recharts 会注入，故全部可选）。 */
+export type ChartTipProps = {
+  active?: boolean
+  label?: React.ReactNode
+  payload?: { dataKey?: string | number; color?: string; fill?: string; name?: string; value?: string | number | null }[]
+  unit?: string
+}
+
+export function ChartTip({ active, payload, label, unit = '' }: ChartTipProps) {
   if (!active || !payload || payload.length === 0) return null
   return (
     <div className="rounded-md border border-border-strong bg-card px-3 py-2 shadow-xl" data-qoder-id="qel-rounded-md-9f002ac0" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-rounded-md-9f002ac0&quot;,&quot;filePath&quot;:&quot;react-vite/src/components/charts.jsx&quot;,&quot;componentName&quot;:&quot;ChartTip&quot;,&quot;elementRole&quot;:&quot;rounded-md&quot;,&quot;loc&quot;:{&quot;line&quot;:12,&quot;column&quot;:5}}">

@@ -25,45 +25,94 @@ export const CAPABILITY_TEXT = {
   LAB_TEST: '理化检验',
 }
 
-export function useCertificates(params = {}) {
+/** 能力项字典项。 */
+export type CapabilityItem = {
+  code: string
+  name?: string
+  description?: string
+  enforced?: boolean
+  holders?: number
+  requiredRole?: string
+  [key: string]: unknown
+}
+
+/** 人员证书行。 */
+export type CertificateItem = {
+  id: number | string
+  username?: string
+  displayName?: string | null
+  certType?: string
+  certName?: string
+  capability?: string | null
+  certNo?: string | null
+  issuedBy?: string | null
+  validUntil?: string | null
+  status?: string
+  /** 到期预警：已过期天数 */
+  overdueDays?: number
+  /** 到期预警：剩余天数 */
+  daysLeft?: number
+  [key: string]: unknown
+}
+
+/** 到期预警响应（GET /api/personnel/alerts）。 */
+export type PersonnelAlertsResponse = {
+  days?: number
+  expiredCount?: number
+  expiringCount?: number
+  expired?: CertificateItem[]
+  expiring?: CertificateItem[]
+  [key: string]: unknown
+}
+
+/** 人员资质汇总（GET /api/personnel/summary）。 */
+export type PersonnelSummaryResponse = {
+  totalCertificates?: number
+  healthCertificates?: number
+  qualifications?: number
+  healthCertEnforced?: boolean
+  [key: string]: unknown
+}
+
+export function useCertificates(params: { username?: string; certType?: string } = {}) {
   const qs = new URLSearchParams()
   if (params.username) qs.set('username', params.username)
   if (params.certType) qs.set('certType', params.certType)
   const s = qs.toString()
-  return useQuery({
+  return useQuery<CertificateItem[]>({
     queryKey: ['personnel', 'certificates', params],
-    queryFn: () => request(`/api/personnel/certificates${s ? `?${s}` : ''}`),
+    queryFn: () => request<CertificateItem[]>(`/api/personnel/certificates${s ? `?${s}` : ''}`),
     refetchInterval: REFRESH_MS,
   })
 }
 
 export function useCapabilities() {
-  return useQuery({
+  return useQuery<CapabilityItem[]>({
     queryKey: ['personnel', 'capabilities'],
-    queryFn: () => request('/api/personnel/capabilities'),
+    queryFn: () => request<CapabilityItem[]>('/api/personnel/capabilities'),
     refetchInterval: REFRESH_MS,
   })
 }
 
 export function usePersonnelAlerts(days = 30) {
-  return useQuery({
+  return useQuery<PersonnelAlertsResponse>({
     queryKey: ['personnel', 'alerts', days],
-    queryFn: () => request(`/api/personnel/alerts?days=${days}`),
+    queryFn: () => request<PersonnelAlertsResponse>(`/api/personnel/alerts?days=${days}`),
     refetchInterval: REFRESH_MS,
   })
 }
 
 export function usePersonnelSummary() {
-  return useQuery({
+  return useQuery<PersonnelSummaryResponse>({
     queryKey: ['personnel', 'summary'],
-    queryFn: () => request('/api/personnel/summary'),
+    queryFn: () => request<PersonnelSummaryResponse>('/api/personnel/summary'),
     refetchInterval: REFRESH_MS,
   })
 }
 
 export function useIssueCertificate() {
   const qc = useQueryClient()
-  return useMutation({
+  return useMutation<unknown, Error, Record<string, unknown>>({
     mutationFn: (body) => request('/api/personnel/certificates', { method: 'POST', body }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['personnel'] }),
   })
@@ -71,7 +120,7 @@ export function useIssueCertificate() {
 
 export function useRevokeCertificate() {
   const qc = useQueryClient()
-  return useMutation({
+  return useMutation<unknown, Error, { id: string | number; reason?: string }>({
     mutationFn: ({ id, reason }) =>
       request(`/api/personnel/certificates/${id}/revoke`, { method: 'POST', body: { reason } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['personnel'] }),

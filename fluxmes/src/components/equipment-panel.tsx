@@ -34,14 +34,16 @@ import { cn } from '../lib/utils'
  * - OEE 三因子分解（可用率取自设备状态事件停机时长，FR-9）
  */
 
-const STATUS_TONE = {
+type OrderStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED'
+type Tone = 'warn' | 'primary' | 'accent' | 'muted' | 'danger'
+const STATUS_TONE: Record<OrderStatus, Tone> = {
   OPEN: 'warn',
   IN_PROGRESS: 'primary',
   DONE: 'accent',
   CANCELLED: 'muted',
 }
 
-function Row({ icon: Icon, label, children }) {
+function Row({ icon: Icon, label, children }: { icon?: React.ComponentType<{ className?: string }>; label?: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2">
       {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-faint" />}
@@ -51,9 +53,9 @@ function Row({ icon: Icon, label, children }) {
   )
 }
 
-export function MaintenancePanel({ code }) {
+export function MaintenancePanel({ code }: { code?: string }) {
   const session = getSession()
-  const canOperate = ['OPERATOR', 'SUPERVISOR', 'ADMIN'].includes(session?.role)
+  const canOperate = ['OPERATOR', 'SUPERVISOR', 'ADMIN'].includes(session?.role ?? '')
 
   const { data: alerts } = useEquipmentAlerts(7)
   const { data: orders = [] } = useMaintenanceOrders({ equipmentCode: code })
@@ -65,7 +67,7 @@ export function MaintenancePanel({ code }) {
   const [planDate, setPlanDate] = useState('')
   const [orderRemark, setOrderRemark] = useState('')
   const [runtimeHours, setRuntimeHours] = useState('')
-  const [msg, setMsg] = useState(null)
+  const [msg, setMsg] = useState<{ tone: 'accent' | 'danger'; text: string } | null>(null)
 
   const statusMut = useChangeEquipmentStatus()
   const createMut = useCreateMaintenanceOrder()
@@ -75,7 +77,7 @@ export function MaintenancePanel({ code }) {
   const ownAlert = alerts?.maintenance?.find((m) => m.code === code)
   const ownCalibration = alerts?.calibration?.find((c) => c.code === code)
 
-  const notify = (tone, text) => setMsg({ tone, text })
+  const notify = (tone: 'accent' | 'danger', text: string) => setMsg({ tone, text })
 
   return (
     <div className="space-y-4" data-component="equipment-maintenance">
@@ -177,7 +179,7 @@ export function MaintenancePanel({ code }) {
               onClick={async () => {
                 try {
                   await createMut.mutateAsync({
-                    equipmentCode: code,
+                    equipmentCode: code ?? '',
                     type: orderType,
                     planDate: planDate || undefined,
                     remark: orderRemark || undefined,
@@ -186,7 +188,7 @@ export function MaintenancePanel({ code }) {
                   setShowOrder(false)
                   setOrderRemark('')
                 } catch (e) {
-                  notify('danger', String(e.message || e))
+                  notify('danger', String((e as Error)?.message ?? e))
                 }
               }}
             >
@@ -205,7 +207,7 @@ export function MaintenancePanel({ code }) {
                   <Badge tone="muted" dot={false}>
                     {ORDER_TYPES.find((t) => t.code === o.type)?.label ?? o.type}
                   </Badge>
-                  <Badge tone={STATUS_TONE[o.status] ?? 'muted'} dot={false}>{o.status}</Badge>
+                  <Badge tone={STATUS_TONE[o.status as OrderStatus] ?? 'muted'} dot={false}>{o.status}</Badge>
                   {o.status !== 'DONE' && canOperate ? (
                     <Button
                       size="sm"
@@ -222,7 +224,7 @@ export function MaintenancePanel({ code }) {
                           })
                           notify('accent', `工单完成，下次保养 ${res?.equipment?.maint?.next ?? '已顺延'}`)
                         } catch (e) {
-                          notify('danger', String(e.message || e))
+                          notify('danger', String((e as Error)?.message ?? e))
                         }
                       }}
                     >
@@ -274,11 +276,11 @@ export function MaintenancePanel({ code }) {
               disabled={busy}
               onClick={async () => {
                 try {
-                  await statusMut.mutateAsync({ code, toStatus, reason: reason || undefined })
+                  await statusMut.mutateAsync({ code: code ?? '', toStatus, reason: reason || undefined })
                   notify('accent', `状态已切换为 ${EQUIPMENT_STATUSES.find((s) => s.code === toStatus)?.label}`)
                   setReason('')
                 } catch (e) {
-                  notify('danger', String(e.message || e))
+                  notify('danger', String((e as Error)?.message ?? e))
                 }
               }}
             >
@@ -306,7 +308,7 @@ export function ComplianceStrip() {
   const expired = alerts.calibrationExpired
   const overdue = alerts.maintenanceOverdue
   const due = alerts.maintenanceDue
-  const items = [
+  const items: { label: string; value?: number; tone: Tone }[] = [
     { label: '校准超期', value: expired, tone: 'danger' },
     { label: '保养逾期', value: overdue, tone: 'warn' },
     { label: `${alerts.withinDays} 日内到期`, value: due, tone: 'primary' },
@@ -322,10 +324,10 @@ export function ComplianceStrip() {
           <div key={it.label} className="flex items-center gap-2">
             <span className="label-tech">{it.label}</span>
             <span className="num text-[15px] font-semibold">{it.value}</span>
-            <Badge tone={it.value > 0 ? it.tone : 'muted'} dot={false}>{it.value > 0 ? '需处理' : '正常'}</Badge>
+            <Badge tone={(it.value ?? 0) > 0 ? it.tone : 'muted'} dot={false}>{(it.value ?? 0) > 0 ? '需处理' : '正常'}</Badge>
           </div>
         ))}
-        {expired > 0 && (
+        {(expired ?? 0) > 0 && (
           <span className="text-[11px] text-danger">
             校准超期设备已被移出批次建单可选清单，并阻断以其数据为依据的放行（FR-8 / FR-10）
           </span>

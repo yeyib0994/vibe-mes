@@ -3,13 +3,21 @@ import { useMutation } from '@tanstack/react-query'
 import { request } from './http'
 import { clearSession, Session, setSession } from '../lib/auth'
 
+/** POST /api/auth/login 的响应体。 */
+type LoginResponse = {
+  token: string
+  userId?: number
+  username: string
+  displayName?: string
+  role: Session['role']
+}
+
 /** POST /api/auth/login —— { token, userId, username, displayName, role } */
 export function useLogin(onSuccess: (s: Session) => void) {
   const [error, setError] = useState<string | null>(null)
 
-  const login = useMutation({
-    mutationFn: (body: { username: string; password: string }) =>
-      request('/api/auth/login', { method: 'POST', body }),
+  const login = useMutation<LoginResponse, Error, { username: string; password: string }>({
+    mutationFn: (body) => request<LoginResponse>('/api/auth/login', { method: 'POST', body }),
     onSuccess: (data) => {
       const s: Session = {
         token: data.token,

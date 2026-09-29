@@ -1,6 +1,7 @@
+import type { ComponentType, ReactNode } from 'react'
 import { useState } from 'react'
 import { CheckCircle2, Scale, ShieldAlert, TriangleAlert } from 'lucide-react'
-import { Badge, Button, Card, Input, Progress } from '../components/ui'
+import { Badge, Button, Card, Input, Progress, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import {
   RESULT_TEXT,
@@ -20,7 +21,19 @@ import { hasRole } from '../lib/auth'
  * 服务端强制判定：|偏差| ≤ 容差判合格；超差自动建偏差单 + major 报警并阻断任务，
  * 须由质检员复核（复核人不得为称量人本人）后方可继续。
  */
-function StatCard({ icon: Icon, label, value, unit, sub }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  unit,
+  sub,
+}: {
+  icon: ComponentType<{ className?: string }>
+  label: ReactNode
+  value: ReactNode
+  unit?: ReactNode
+  sub?: ReactNode
+}) {
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between">
@@ -36,7 +49,7 @@ function StatCard({ icon: Icon, label, value, unit, sub }) {
   )
 }
 
-function Field({ label, children }) {
+function Field({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
@@ -60,7 +73,7 @@ export default function Weighing() {
     targetQty: '',
     tolerancePct: '1',
   })
-  const [weighQty, setWeighQty] = useState({})
+  const [weighQty, setWeighQty] = useState<Record<string, string>>({})
   const [open, setOpen] = useState(false)
 
   return (
@@ -158,7 +171,7 @@ export default function Weighing() {
                     {t.unit}
                   </div>
                 </div>
-                <Badge tone={TASK_STATUS_TONE[t.status] ?? 'muted'}>{TASK_STATUS_TEXT[t.status] ?? t.status}</Badge>
+                <Badge tone={(TASK_STATUS_TONE as Record<string, BadgeTone>)[t.status ?? ''] ?? 'muted'}>{(TASK_STATUS_TEXT as Record<string, string>)[t.status ?? ''] ?? t.status}</Badge>
               </div>
 
               <div className="mt-2">
@@ -212,7 +225,7 @@ export default function Weighing() {
                         </td>
                         <td className="num py-1.5 pr-3">{i.deviationPct}%</td>
                         <td className="py-1.5 pr-3">
-                          <Badge tone={RESULT_TONE[i.result] ?? 'muted'}>{RESULT_TEXT[i.result] ?? i.result}</Badge>
+                          <Badge tone={(RESULT_TONE as Record<string, BadgeTone>)[i.result ?? ''] ?? 'muted'}>{(RESULT_TEXT as Record<string, string>)[i.result ?? ''] ?? i.result}</Badge>
                         </td>
                         <td className="py-1.5 pr-3">{i.operator ?? '—'}</td>
                         <td className="num py-1.5 pr-3">{i.deviationId ?? '—'}</td>

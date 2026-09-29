@@ -31,16 +31,17 @@ import { cn } from '../lib/utils'
  * - 变更影响面分析：执行旧版本的在制批次 + 是否需重评检验方法
  */
 
-export function VersionControlPanel({ code, version }) {
+export function VersionControlPanel({ code, version }: { code?: string; version?: string }) {
   const session = getSession()
-  const canEdit = ['OPERATOR', 'SUPERVISOR', 'ADMIN'].includes(session?.role)
+  const canEdit = ['OPERATOR', 'SUPERVISOR', 'ADMIN'].includes(session?.role ?? '')
   const canApprove = session?.role === 'ADMIN'
 
-  const { data: versions = [] } = useRecipeVersions(code)
-  const { data: impact } = useRecipeImpact(code, version)
+  const rc = code ?? ''
+  const { data: versions = [] } = useRecipeVersions(rc)
+  const { data: impact } = useRecipeImpact(rc, version)
   const [changeNote, setChangeNote] = useState('')
   const [comment, setComment] = useState('')
-  const [msg, setMsg] = useState(null)
+  const [msg, setMsg] = useState<{ tone: 'accent' | 'warn' | 'danger'; text: string } | null>(null)
 
   const draftMut = useCreateDraft()
   const submitMut = useSubmitVersion()
@@ -51,7 +52,7 @@ export function VersionControlPanel({ code, version }) {
   const pending = versions.filter((v) => v.status === 'pending')
   const effective = versions.find((v) => v.status === 'effective')
 
-  const notify = (tone, text) => setMsg({ tone, text })
+  const notify = (tone: 'accent' | 'warn' | 'danger', text: string) => setMsg({ tone, text })
 
   return (
     <div className="space-y-4" data-component="recipe-version-control">
@@ -102,10 +103,10 @@ export function VersionControlPanel({ code, version }) {
                               disabled={busy}
                               onClick={async () => {
                                 try {
-                                  await submitMut.mutateAsync({ code, version: v.version })
+                                  await submitMut.mutateAsync({ code: rc, version: v.version })
                                   notify('accent', `${v.version} 已提交审批`)
                                 } catch (e) {
-                                  notify('danger', String(e.message || e))
+                                  notify('danger', String((e as Error)?.message ?? e))
                                 }
                               }}
                             >
@@ -121,11 +122,11 @@ export function VersionControlPanel({ code, version }) {
                                 onClick={async () => {
                                   try {
                                     const r = await approveMut.mutateAsync({
-                                      code, version: v.version, approved: true, comment: comment || undefined,
+                                      code: rc, version: v.version, approved: true, comment: comment || undefined,
                                     })
                                     notify('accent', `已生效，停用旧版本 ${(r?.deactivated ?? []).join(', ') || '—'}`)
                                   } catch (e) {
-                                    notify('danger', String(e.message || e))
+                                    notify('danger', String((e as Error)?.message ?? e))
                                   }
                                 }}
                               >
@@ -138,11 +139,11 @@ export function VersionControlPanel({ code, version }) {
                                 onClick={async () => {
                                   try {
                                     await approveMut.mutateAsync({
-                                      code, version: v.version, approved: false, comment: comment || '驳回',
+                                      code: rc, version: v.version, approved: false, comment: comment || '驳回',
                                     })
                                     notify('warn', `${v.version} 已驳回`)
                                   } catch (e) {
-                                    notify('danger', String(e.message || e))
+                                    notify('danger', String((e as Error)?.message ?? e))
                                   }
                                 }}
                               >
@@ -157,10 +158,10 @@ export function VersionControlPanel({ code, version }) {
                               disabled={busy}
                               onClick={async () => {
                                 try {
-                                  await activateMut.mutateAsync({ code, version: v.version, comment: comment || undefined })
+                                  await activateMut.mutateAsync({ code: rc, version: v.version, comment: comment || undefined })
                                   notify('accent', `${v.version} 已重新生效（旧版本同步停用）`)
                                 } catch (e) {
-                                  notify('danger', String(e.message || e))
+                                  notify('danger', String((e as Error)?.message ?? e))
                                 }
                               }}
                             >
@@ -201,18 +202,18 @@ export function VersionControlPanel({ code, version }) {
             <Button
               size="sm"
               variant="primary"
-              disabled={busy || !code}
+              disabled={busy || !rc}
               onClick={async () => {
                 try {
                   const r = await draftMut.mutateAsync({
-                    code,
-                    fromVersion: version || effective?.version,
+                    code: rc,
+                    fromVersion: version ?? effective?.version ?? undefined,
                     changeNote: changeNote || undefined,
                   })
                   notify('accent', `草稿 ${r?.version ?? ''} 已创建（复制 ${r?.sourceVersion ?? ''} 参数）`)
                   setChangeNote('')
                 } catch (e) {
-                  notify('danger', String(e.message || e))
+                  notify('danger', String((e as Error)?.message ?? e))
                 }
               }}
             >
@@ -271,9 +272,9 @@ export function VersionControlPanel({ code, version }) {
                 {impact.reviewReason}
               </div>
             )}
-            {impact.affectedBatches?.length > 0 && (
+            {(impact.affectedBatches?.length ?? 0) > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {impact.affectedBatches.map((b) => (
+                {impact.affectedBatches?.map((b) => (
                   <Badge key={b.id} tone={b.released ? 'danger' : 'primary'} dot={false}>
                     {b.id} · {b.status}
                     {b.released ? ' · 已放行' : ''}

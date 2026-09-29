@@ -10,9 +10,29 @@ const REFRESH_MS = 30_000
 const operatorOf = () => getSession()?.username ?? '陈志远'
 
 // 报警接口响应形状（后端 AlarmDto / 统计口径见 apps/api-java）
-type AlarmItem = { id: string; status: string; ackBy?: string | null; recoveredAt?: string | null; [key: string]: unknown }
-type AlarmListResponse = { generatedAt?: string; unackedCount?: number; alarms: AlarmItem[] }
+export type AlarmItem = {
+  id: string
+  status: string
+  /** 报警级别：critical / major / minor */
+  level?: string
+  source?: string
+  content?: string
+  value?: string | number
+  threshold?: string | number
+  time?: string
+  triggeredAt?: string | null
+  ackBy?: string | null
+  recoveredAt?: string | null
+  /** 是否已超时未确认（SLA 判定） */
+  overdue?: boolean
+  /** 是否已升级至值班长 */
+  escalated?: boolean
+  [key: string]: unknown
+}
+export type AlarmListResponse = { generatedAt?: string; unackedCount?: number; alarms: AlarmItem[] }
 type UnackedCountResponse = { unacked?: number }
+/** SLA 政策行（G1 运行时可配置）。 */
+export type SlaPolicy = { level: string; minutes: number; enabled: boolean }
 
 // Phase 1：默认走后端 HTTP（Vite proxy /api → Spring Boot）。
 // 置 VITE_USE_MOCK=true 可回退到 Phase 0 的本地 Mock 适配器（plan「Mock 与真实可切换」）。
@@ -43,21 +63,21 @@ function buildMockList() {
 /* ------------------------- 列表 + 未确认计数（FR-1/7） ------------------------- */
 
 export function useAlarms() {
-  return useQuery({
+  return useQuery<AlarmListResponse>({
     queryKey: ['alarms'],
-    queryFn: () => (USE_MOCK ? mockDelay(buildMockList()) : request('/api/alarms')),
+    queryFn: () => (USE_MOCK ? mockDelay(buildMockList()) : request<AlarmListResponse>('/api/alarms')),
     refetchInterval: REFRESH_MS,
   })
 }
 
 // 侧栏 badge 与顶栏铃铛共用此查询（queryKey 唯一 → react-query 单点缓存，计数来源唯一，FR-7）。
 export function useUnackedCount() {
-  return useQuery({
+  return useQuery<{ unacked?: number }, Error, number>({
     queryKey: ['alarms-unacked-count'],
     queryFn: () =>
       USE_MOCK
         ? mockDelay({ unacked: alarmData.filter((a) => a.status === 'unacked').length })
-        : request('/api/alarms/unacked-count'),
+        : request<{ unacked?: number }>('/api/alarms/unacked-count'),
     select: (d) => d?.unacked ?? 0,
     refetchInterval: REFRESH_MS,
   })
@@ -67,7 +87,7 @@ export function useUnackedCount() {
 
 export function useAckAlarm() {
   const qc = useQueryClient()
-  return useMutation({
+  return useMutation<unknown, Error, string>({
     mutationFn: (id: string) =>
       USE_MOCK
         ? mockDelay({ id, status: 'acked', ackBy: operatorOf() })
@@ -101,9 +121,10 @@ export function useAckAlarm() {
       })
       return { prevList, prevCount }
     },
-    onError: (_err, _id, ctx) => {
-      if (ctx?.prevList) qc.setQueryData(['alarms'], ctx.prevList)
-      if (ctx?.prevCount) qc.setQueryData(['alarms-unacked-count'], ctx.prevCount)
+    onError: (_err, _id, _onMutateResult, ctx) => {
+      const prev = ctx as { prevList?: AlarmListResponse; prevCount?: UnackedCountResponse } | undefined
+      if (prev?.prevList) qc.setQueryData(['alarms'], prev.prevList)
+      if (prev?.prevCount) qc.setQueryData(['alarms-unacked-count'], prev.prevCount)
     },
     // 成功后以服务端为准回填（含审计与真实确认时间）
     onSuccess: () => invalidateAlarms(qc),
@@ -115,7 +136,7 @@ export function useAckAlarm() {
 // opts.auto = true → 系统自动恢复；否则人工标记，操作人为当前值班人员。
 export function useRecoverAlarm() {
   const qc = useQueryClient()
-  return useMutation({
+  return useMutation<unknown, Error, { id: string; auto?: boolean }>({
     mutationFn: ({ id, auto = false }: { id: string; auto?: boolean }) =>
       USE_MOCK
         ? mockDelay({ id, status: 'recovered' })
@@ -146,9 +167,10 @@ export function useRecoverAlarm() {
       }
       return { prevList, prevCount }
     },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prevList) qc.setQueryData(['alarms'], ctx.prevList)
-      if (ctx?.prevCount) qc.setQueryData(['alarms-unacked-count'], ctx.prevCount)
+    onError: (_err, _vars, _onMutateResult, ctx) => {
+      const prev = ctx as { prevList?: AlarmListResponse; prevCount?: UnackedCountResponse } | undefined
+      if (prev?.prevList) qc.setQueryData(['alarms'], prev.prevList)
+      if (prev?.prevCount) qc.setQueryData(['alarms-unacked-count'], prev.prevCount)
     },
     onSuccess: () => invalidateAlarms(qc),
   })
@@ -156,32 +178,49 @@ export function useRecoverAlarm() {
 
 /* ------------------------- 趋势 / 高频源 / 统计（FR-5/6） ------------------------- */
 
+/** 报警趋势点（后端返回，Mock 模式为 null → 页面回退静态数据）。 */
+export type AlarmTrendPoint = { t?: string; time?: string; count?: number; critical?: number; major?: number; minor?: number; [key: string]: unknown }
+
 export function useAlarmTrend(hours = 8) {
-  return useQuery({
+  return useQuery<AlarmTrendPoint[] | null>({
     queryKey: ['alarm-trend', hours],
     queryFn: () =>
       USE_MOCK
-        ? mockDelay(null) // Mock 模式返回 null，页面回退到静态数据
-        : request(`/api/alarms/trend?hours=${hours}`),
+        ? mockDelay<AlarmTrendPoint[] | null>(null) // Mock 模式返回 null，页面回退到静态数据
+        : request<AlarmTrendPoint[]>(`/api/alarms/trend?hours=${hours}`),
     refetchInterval: REFRESH_MS,
   })
 }
 
+/** 高频报警源行。 */
+export type AlarmTopSource = { source?: string; name?: string; count?: number; level?: string; [key: string]: unknown }
+
 export function useAlarmTopSources(days = 7, limit = 5) {
-  return useQuery({
+  return useQuery<AlarmTopSource[] | null>({
     queryKey: ['alarm-top-sources', days, limit],
     queryFn: () =>
       USE_MOCK
-        ? mockDelay(null)
-        : request(`/api/alarms/top-sources?days=${days}&limit=${limit}`),
+        ? mockDelay<AlarmTopSource[] | null>(null)
+        : request<AlarmTopSource[]>(`/api/alarms/top-sources?days=${days}&limit=${limit}`),
     refetchInterval: REFRESH_MS,
   })
 }
 
+/** 报警统计（GET /api/alarms/stats）。 */
+export type AlarmStats = {
+  todayTotal?: number
+  active?: number
+  unackedCritical?: number
+  overdueUnacked?: number
+  avgResponseMinutes?: number
+  ackRatePercent?: number
+  [key: string]: unknown
+}
+
 export function useAlarmStats() {
-  return useQuery({
+  return useQuery<AlarmStats | null>({
     queryKey: ['alarm-stats'],
-    queryFn: () => (USE_MOCK ? mockDelay(null) : request('/api/alarms/stats')),
+    queryFn: () => (USE_MOCK ? mockDelay<AlarmStats | null>(null) : request<AlarmStats>('/api/alarms/stats')),
     refetchInterval: REFRESH_MS,
   })
 }
@@ -202,9 +241,9 @@ export type SuppressionRule = {
 }
 
 export function useSuppressions() {
-  return useQuery({
+  return useQuery<SuppressionRule[]>({
     queryKey: ['alarm-suppressions'],
-    queryFn: () => (USE_MOCK ? mockDelay([]) : request('/api/alarms/suppressions')),
+    queryFn: () => (USE_MOCK ? mockDelay([]) : request<SuppressionRule[]>('/api/alarms/suppressions')),
     refetchInterval: REFRESH_MS,
   })
 }
@@ -240,9 +279,9 @@ export type SlaPolicyItem = {
 }
 
 export function useSlaPolicy() {
-  return useQuery({
+  return useQuery<SlaPolicy[]>({
     queryKey: ['alarm-sla-policy'],
-    queryFn: () => request('/api/alarms/sla/policy'),
+    queryFn: () => request<SlaPolicy[]>('/api/alarms/sla/policy'),
     refetchInterval: REFRESH_MS,
   })
 }
@@ -251,7 +290,7 @@ export function useSlaPolicy() {
 export function useUpdateSlaPolicy() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ level, minutes, enabled, note }) =>
+    mutationFn: ({ level, minutes, enabled, note }: { level: string; minutes: number; enabled: boolean; note?: string }) =>
       request(`/api/alarms/sla/policy/${level}`, { method: 'PUT', body: { minutes, enabled, note } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['alarm-sla-policy'] })

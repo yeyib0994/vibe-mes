@@ -1,3 +1,4 @@
+import type { ComponentType, ReactNode } from 'react'
 import { useState } from 'react'
 import {
   ArrowRightLeft,
@@ -13,15 +14,16 @@ import {
   Truck,
   Wheat,
 } from 'lucide-react'
-import { Badge, Card, Dot } from '../components/ui'
+import { Badge, Card, Dot, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import { traceNodeType } from '../data/mes'
-import { useTraceChain, useTraceTargets } from '../api/trace'
+import { useTraceChain, useTraceTargets, type TraceNode } from '../api/trace'
 import { useGenealogy } from '../api/foodsafety'
 import { TraceClosurePanel } from '../components/trace-panel'
 import { cn } from '../lib/utils'
 
-const TYPE_ICON = {
+/** 追溯节点类型 → 图标。 */
+const TYPE_ICON: Record<string, ComponentType<{ className?: string }>> = {
   material: FlaskConical,
   process: Cog,
   batch: Boxes,
@@ -29,9 +31,9 @@ const TYPE_ICON = {
   warehouse: Package,
   shipment: Truck,
 }
-const TYPE_DOT = { primary: 'primary', accent: 'accent', warn: 'warn', muted: 'muted' }
+const TYPE_DOT: Record<string, BadgeTone> = { primary: 'primary', accent: 'accent', warn: 'warn', muted: 'muted' }
 
-function StatCell({ icon: Icon, label, value }) {
+function StatCell({ icon: Icon, label, value }: { icon: ComponentType<{ className?: string }>; label: ReactNode; value: ReactNode }) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
@@ -49,12 +51,12 @@ export default function Trace() {
   const { data: targets } = useTraceTargets()
   const candidates = targets?.batches ?? []
   const [batchId, setBatchId] = useState('B-260826-007')
-  const [dir, setDir] = useState('forward')
+  const [dir, setDir] = useState<'forward' | 'backward'>('forward')
   const { data } = useTraceChain(batchId)
   const { data: gen } = useGenealogy(batchId)
 
   const chain = data?.chain
-  const nodes = chain ? (dir === 'forward' ? chain.forward : chain.backward) : []
+  const nodes: TraceNode[] = chain ? ((dir === 'forward' ? chain.forward : chain.backward) ?? []) : []
   const selectedBatch = candidates.find((c) => c.id === batchId)
 
   return (
@@ -100,7 +102,7 @@ export default function Trace() {
               ].map((o) => (
                 <button
                   key={o.k}
-                  onClick={() => setDir(o.k)}
+                  onClick={() => setDir(o.k as 'forward' | 'backward')}
                   className={cn(
                     'rounded px-2.5 py-1 text-xs font-medium transition-colors',
                     dir === o.k ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
@@ -141,8 +143,8 @@ export default function Trace() {
             <div className="flex items-center gap-2">
               <Wheat className="h-4 w-4 text-accent" />
               <h2 className="text-sm font-medium">真实投料谱系</h2>
-              <Badge tone={gen?.upstreamCount > 0 ? 'success' : 'warning'}>
-                {gen?.upstreamCount > 0 ? '已登记投料' : '未登记投料'}
+              <Badge tone={(gen?.upstreamCount ?? 0) > 0 ? 'success' : 'warning'}>
+                {(gen?.upstreamCount ?? 0) > 0 ? '已登记投料' : '未登记投料'}
               </Badge>
             </div>
             <span className="text-xs text-faint">
@@ -194,7 +196,7 @@ export default function Trace() {
           <div className="relative">
             {nodes.map((n, i) => {
               const Icon = TYPE_ICON[n.type] ?? FlaskConical
-              const cfg = traceNodeType[n.type] ?? { tone: 'muted', label: n.type }
+              const cfg = (traceNodeType as Record<string, { tone?: string; label?: string }>)[n.type] ?? { tone: 'muted', label: n.type }
               const last = i === nodes.length - 1
               return (
                 <div key={`${n.label}-${i}`} className="relative flex gap-3.5 pb-5 last:pb-0">
@@ -215,7 +217,7 @@ export default function Trace() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="label-tech">{n.label}</span>
                       <span className="num text-[13px] font-medium">{n.title}</span>
-                      <Badge tone={cfg.tone} dot={false} className="ml-auto">{n.value}</Badge>
+                      <Badge tone={(cfg.tone ?? 'muted') as BadgeTone} dot={false} className="ml-auto">{n.value}</Badge>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">{n.meta}</div>
                   </div>

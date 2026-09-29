@@ -23,10 +23,28 @@ import { hasRole } from '../lib/auth'
 
 const EMPTY = '—'
 
-function statusTone(status) {
+type SigTone = 'success' | 'muted' | 'primary' | 'warn' | 'danger'
+
+function statusTone(status?: string): SigTone {
   if (status === 'VALID') return 'success'
   if (status === 'VOID') return 'muted'
   return 'muted'
+}
+
+/** 签名对话框的提交载荷。 */
+export type SignaturePayload = { meaning: string; password: string }
+
+export type SignatureDialogProps = {
+  open: boolean
+  action: string
+  recordType?: string
+  recordId?: string | number
+  headline?: string
+  hint?: string
+  busy?: boolean
+  error?: string | null
+  onCancel: () => void
+  onConfirm: (p: SignaturePayload) => void
 }
 
 export function SignatureDialog({
@@ -40,7 +58,7 @@ export function SignatureDialog({
   error,
   onCancel,
   onConfirm,
-}) {
+}: SignatureDialogProps) {
   const { data: policyRes } = useSignaturePolicy()
   const policy = (policyRes?.items ?? []).find((p) => p.action === action)
   const { data: attempt } = useMySignatureAttempts({ enabled: open })
@@ -143,7 +161,7 @@ export function SignatureDialog({
   )
 }
 
-export function SignatureList({ recordType, recordId, compact = false }) {
+export function SignatureList({ recordType, recordId, compact = false }: { recordType?: string; recordId?: string | number; compact?: boolean }) {
   const { data, isLoading } = useSignatureList({ recordType, recordId })
   const verify = useVerifySignature()
   const exportSig = useExportSignatures()

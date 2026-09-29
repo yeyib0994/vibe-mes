@@ -4,9 +4,10 @@ import { PageHeader } from './layout'
 import { useDeviations, useQualityDetect, useTransitionDeviation } from '../api/quality'
 import { hasRole } from '../lib/auth'
 
-const STATUS_TONE = { open: 'danger', investigating: 'warn', capa: 'primary', closed: 'accent' }
-const STATUS_LABEL = { open: '待处理', investigating: '调查中', capa: '整改中', closed: '已关闭' }
-const NEXT = { open: 'investigating', investigating: 'capa', capa: 'closed' }
+type DeviationStatus = 'open' | 'investigating' | 'capa' | 'closed'
+const STATUS_TONE: Record<DeviationStatus, 'danger' | 'warn' | 'primary' | 'accent'> = { open: 'danger', investigating: 'warn', capa: 'primary', closed: 'accent' }
+const STATUS_LABEL: Record<DeviationStatus, string> = { open: '待处理', investigating: '调查中', capa: '整改中', closed: '已关闭' }
+const NEXT: Record<DeviationStatus, DeviationStatus> = { open: 'investigating', investigating: 'capa', capa: 'closed', closed: 'closed' }
 
 /**
  * 质量控制面板：Western Electric 判异结果（T3）+ 控制限来源（T2/C5）+ 偏差工作流（T8）。
@@ -68,7 +69,7 @@ export default function QualityPanel() {
           ) : (
             <ul className="divide-y divide-border">
               {deviations.map((d) => {
-                const next = NEXT[d.status]
+                const next = NEXT[d.status as DeviationStatus]
                 return (
                   <li key={d.id} className="flex items-center gap-2 py-1.5">
                     <span className="num text-[13px]">{d.id}</span>
@@ -84,9 +85,9 @@ export default function QualityPanel() {
                           if (next === 'closed') {
                             const rootCause = window.prompt('关闭偏差需填写根因', d.rootCause ?? '')
                             if (rootCause === null) return
-                            transition.mutate({ id: d.id, target: next, rootCause })
+                            transition.mutate({ id: d.id, target: next as string, rootCause })
                           } else {
-                            transition.mutate({ id: d.id, target: next })
+                            transition.mutate({ id: d.id, target: next as string })
                           }
                         }}
                       >

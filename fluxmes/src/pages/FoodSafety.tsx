@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ComponentType, type FormEvent, type ReactNode } from 'react'
 import {
   Activity,
   CheckCircle2,
@@ -8,13 +8,15 @@ import {
   Thermometer,
   TriangleAlert,
 } from 'lucide-react'
-import { Badge, Button, Card, Input, Tabs } from '../components/ui'
+import { Badge, Button, Card, Input, Tabs, type BadgeTone } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import {
   CLEANING_TYPE_LABEL,
   HAZARD_LABEL,
   METRIC_LABEL,
   RESULT_TONE,
+  type CcpSummary,
+  type EnvSummary,
   useCcpPoints,
   useCcpRecords,
   useCcpSummary,
@@ -43,7 +45,20 @@ const LINES = [
   { code: 'LINE-3', name: '精制包装线' },
 ]
 
-function StatCard({ icon: Icon, label, value, unit, tone = 'primary', sub }) {
+/** JS 常量模块索引安全化（保持运行时行为不变）。 */
+const CLEANING_TYPE = CLEANING_TYPE_LABEL as Record<string, { text: string; tone: string }>
+const HAZARD = HAZARD_LABEL as Record<string, { text: string; tone: string }>
+const METRIC = METRIC_LABEL as Record<string, string>
+const TONE = RESULT_TONE as Record<string, BadgeTone>
+
+function StatCard({ icon: Icon, label, value, unit, tone = 'primary', sub }: {
+  icon: ComponentType<{ className?: string }>
+  label?: ReactNode
+  value?: ReactNode
+  unit?: ReactNode
+  tone?: string
+  sub?: ReactNode
+}) {
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between">
@@ -59,7 +74,7 @@ function StatCard({ icon: Icon, label, value, unit, tone = 'primary', sub }) {
   )
 }
 
-function Field({ label, children }) {
+function Field({ label, children }: { label?: ReactNode; children?: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
@@ -78,13 +93,13 @@ function CcpPanel() {
   const recordCcp = useRecordCcp()
   const verifyCcp = useVerifyCcp()
   const [form, setForm] = useState({ ccpCode: '', batchId: '', value: '' })
-  const [msg, setMsg] = useState(null)
+  const [msg, setMsg] = useState<string | null>(null)
 
   const points = pointsRes?.points ?? []
   const records = recordsRes?.records ?? []
-  const s = summary ?? {}
+  const s: CcpSummary = summary ?? {}
 
-  async function submit(e) {
+  async function submit(e: FormEvent) {
     e.preventDefault()
     setMsg(null)
     try {
@@ -100,7 +115,7 @@ function CcpPanel() {
       )
       setForm((f) => ({ ...f, value: '' }))
     } catch (err) {
-      setMsg(String(err?.message ?? err))
+      setMsg(String((err as Error)?.message ?? err))
     }
   }
 
@@ -120,7 +135,7 @@ function CcpPanel() {
         </div>
         <div className="grid gap-3 lg:grid-cols-2">
           {points.map((p) => {
-            const hz = HAZARD_LABEL[p.hazardType] ?? { text: p.hazardType, tone: 'muted' }
+            const hz = HAZARD[p.hazardType ?? ''] ?? { text: p.hazardType, tone: 'muted' }
             return (
               <div key={p.code} className="rounded-lg border border-border p-3">
                 <div className="flex items-start justify-between gap-2">
@@ -133,7 +148,7 @@ function CcpPanel() {
                       {p.line} · {p.stepName} · {p.monitorFreq}
                     </div>
                   </div>
-                  <Badge tone={hz.tone}>{hz.text}</Badge>
+                  <Badge tone={hz.tone as BadgeTone}>{hz.text}</Badge>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                   <div>
@@ -364,7 +379,7 @@ function CleaningPanel() {
               </thead>
               <tbody>
                 {records.map((c) => {
-                  const t = CLEANING_TYPE_LABEL[c.type] ?? { text: c.type, tone: 'muted' }
+                  const t = CLEANING_TYPE[c.type ?? ''] ?? { text: c.type, tone: 'muted' }
                   const expired = c.validUntil && new Date(c.validUntil) < new Date()
                   return (
                     <tr key={c.id} className="border-b border-border/60 last:border-0">
@@ -374,7 +389,7 @@ function CleaningPanel() {
                         <span className="num ml-1 text-xs text-faint">{c.equipmentCode}</span>
                       </td>
                       <td className="py-2 pr-3">
-                        <Badge tone={t.tone}>{t.text}</Badge>
+                        <Badge tone={t.tone as BadgeTone}>{t.text}</Badge>
                       </td>
                       <td className="py-2 pr-3 text-xs text-muted-foreground">{c.method}</td>
                       <td className="py-2 pr-3 text-xs">
@@ -383,7 +398,7 @@ function CleaningPanel() {
                       </td>
                       <td className="py-2 pr-3 text-xs">{c.swabResult ?? '—'}</td>
                       <td className="py-2">
-                        <Badge tone={c.result === 'PASS' ? (expired ? 'warning' : 'success') : RESULT_TONE[c.result]}>
+                        <Badge tone={c.result === 'PASS' ? (expired ? 'warning' : 'success') : TONE[c.result ?? ''] ?? 'muted'}>
                           {c.result === 'PASS' && expired ? '已过期' : c.result}
                         </Badge>
                         {c.result === 'PENDING' && hasRole('QC') && (
@@ -465,12 +480,12 @@ function EnvPanel() {
   const { data: recordsRes } = useEnvRecords()
   const recordEnv = useRecordEnv()
   const [form, setForm] = useState({ area: '洁净灌装区', metric: 'TEMP', value: '', limitMin: '', limitMax: '' })
-  const [msg, setMsg] = useState(null)
+  const [msg, setMsg] = useState<string | null>(null)
 
   const records = recordsRes?.records ?? []
-  const s = summary ?? {}
+  const s: EnvSummary = summary ?? {}
 
-  async function submit(e) {
+  async function submit(e: FormEvent) {
     e.preventDefault()
     setMsg(null)
     try {
@@ -484,7 +499,7 @@ function EnvPanel() {
       })
       setMsg(r.result === 'PASS' ? '已记录，指标合格' : `指标超标，已自动生成偏差单 ${r.deviationId}`)
     } catch (err) {
-      setMsg(String(err?.message ?? err))
+      setMsg(String((err as Error)?.message ?? err))
     }
   }
 
@@ -519,7 +534,7 @@ function EnvPanel() {
                       {String(r.sampledAt ?? '').slice(5, 16).replace('T', ' ')}
                     </td>
                     <td className="py-2 pr-3">{r.area}</td>
-                    <td className="py-2 pr-3">{METRIC_LABEL[r.metric] ?? r.metric}</td>
+                    <td className="py-2 pr-3">{METRIC[r.metric ?? ''] ?? r.metric}</td>
                     <td className={`num py-2 pr-3 font-medium ${r.result === 'PASS' ? '' : 'text-danger'}`}>
                       {r.value}
                       {r.unit}
@@ -529,7 +544,7 @@ function EnvPanel() {
                     </td>
                     <td className="py-2 pr-3 text-xs">{r.sampledBy}</td>
                     <td className="py-2">
-                      <Badge tone={RESULT_TONE[r.result]}>
+                      <Badge tone={TONE[r.result ?? ''] ?? 'muted'}>
                         {r.result === 'PASS' ? '合格' : `超标 ${r.deviationId ?? ''}`}
                       </Badge>
                     </td>
@@ -613,7 +628,7 @@ function EnvPanel() {
 
 /* ============================== 页面 ============================== */
 
-export default function FoodSafety({ session }) {
+export default function FoodSafety({ session }: { session?: unknown }) {
   const [tab, setTab] = useState('ccp')
   void session
   return (

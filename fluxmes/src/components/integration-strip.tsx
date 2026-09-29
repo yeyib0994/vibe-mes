@@ -22,7 +22,7 @@ import { cn } from '../lib/utils'
  */
 
 /** 数据来源徽标（设备页多处复用）。 */
-export function DataSourceBadge({ dataSource, className = '' }) {
+export function DataSourceBadge({ dataSource, className = '' }: { dataSource?: string | null; className?: string }) {
   const meta = sourceMeta(dataSource)
   return (
     <Badge tone={meta.tone} dot={false} className={cn('font-normal', className)}>
@@ -39,6 +39,20 @@ type SystemItem = {
   detail: string
   lastSuccessAt: string | null
   dataSource: string | null
+}
+
+type CollectorStats = {
+  lastBatchSize?: number
+  intervalSeconds?: number
+  storedCount?: number
+  lastRunStatus?: string
+  lastRunAt?: string
+}
+
+type IntegrationSummary = {
+  systems?: SystemItem[]
+  collector?: CollectorStats
+  mockCount?: number
 }
 
 type Notice = { tone: 'accent' | 'danger'; text: string }
@@ -90,13 +104,18 @@ function SystemRow({
 export function IntegrationStrip() {
   const role = getSession()?.role
   const canProbe = role === 'SUPERVISOR' || role === 'ADMIN'
-  const { data, isLoading, isError, error } = useIntegrationSummary()
+  const { data, isLoading, isError, error } = useIntegrationSummary() as {
+    data?: IntegrationSummary
+    isLoading: boolean
+    isError: boolean
+    error: Error | null
+  }
   const probe = useProbeIntegration()
   const collect = useCollectMetrics()
   const [msg, setMsg] = useState<Notice | null>(null)
 
   const systems: SystemItem[] = data?.systems ?? []
-  const collector = data?.collector
+  const collector: CollectorStats | undefined = data?.collector
   const mockCount = systems.filter((s) => s.mode === 'MOCK').length
 
   const runProbe = (system: string) => {
