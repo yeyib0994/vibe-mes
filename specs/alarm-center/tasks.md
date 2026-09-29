@@ -43,6 +43,14 @@
 - 目标：实现 FR-12，报警留存 ≥ 3 年，按设备/级别/时间检索。
 - 验收：历史报警可检索；冷/热存储分层生效。
 
+### T11 · SLA 响应时限可配置化（P1 · G1 已实现）
+- 目标：实现 FR-13~FR-17，把写死的 5/15/30 分钟改为运行时可读写的 `alarm_sla_policy`。
+- 实现：`schema-p3.sql` 建表 + 种子；`AlarmSlaPolicyService`（`effectiveMinutes` / `list` / `update`）；
+  `AlarmService.slaFor()` 读表、`defaultSla()` 兜底；建报警写 `sla_minutes` 快照；
+  `GET/PUT /api/alarms/sla/policy`、`POST /api/alarms/sla/sweep`。
+- 验收：修改为 10 分钟后新报警按 10 分钟判逾期，历史报警仍按原时限；`minutes=0` 或停用后该级别不计逾期；
+  越界值（0< 或 >1440）返回 400；统计响应含 `slaPolicy`。
+
 ### T10 · 强提示与可访问性（P1）
 - 目标：critical 未确认强提示（脉冲+可选声光），不依赖颜色（NFR-3）。
 - 验收：critical 未确认有多重提示；通过对比度/非颜色校验。
@@ -50,4 +58,5 @@
 ## 进度总览
 - Phase 0 已实现：FR-1~FR-7 静态展示、FR-3 前端确认。
 - Phase 1 关键路径：T1→T2→T3（确认/审计）→T4（恢复）→T5（接入）→T6（SLA）→T8/T9（关联/留存）。
-- Phase 2：T7（抑制）、T10 深化。
+- Phase 1 已完成：T1~T6、T8~T9、T11（SLA 策略化，G1）；T7 抑制规则已实现（D1 抑制表）。
+- Phase 2：T5 真实 SCADA 接入（现为模拟器）、T7 策略深化、T10 深化。

@@ -13,6 +13,7 @@ import {
 import { ClipboardCheck } from 'lucide-react'
 import { Badge, Card } from '../components/ui'
 import { PageHeader } from '../components/layout'
+import QualityPanel from '../components/quality-panel'
 import { AXIS_TICK, ChartTip } from '../components/charts'
 import { SPC_CL, SPC_LCL, SPC_UCL, qcStatusMap } from '../data/mes'
 import { useQuality } from '../api/quality'
@@ -191,6 +192,7 @@ export default function Quality() {
           </table>
         </div>
       </Card>
+      <QualityPanel />
     </div>
   )
 }

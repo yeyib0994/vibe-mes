@@ -22,6 +22,24 @@ npm run build    # 生产构建，输出到 dist/
 | 批次管理 | `src/pages/Batches.jsx` | 批次台账、筛选搜索、可展开的工艺路线与批档案 |
 | 质量管理 | `src/pages/Quality.jsx` | SPC 控制图、不合格帕累托、检验任务 |
 | 报警中心 | `src/pages/Alarms.jsx` | 报警趋势、高频报警源、报警确认交互 |
+| 设备监控 | `src/pages/Equipment.jsx` | 设备集群 KPI、参数趋势、维护到期 |
+| 配方管理 | `src/pages/Recipes.jsx` | 配方台账、版本历史、CCP 参数 |
+| 追溯查询 | `src/pages/Trace.jsx` | 批次正/逆向追溯链 |
+
+## 后端服务（Phase 1，apps/api-java）
+
+Spring Boot 3 + Java 21，端口 8080，前端经 Vite 代理 `/api` 访问。数据源为 `src/main/resources/fixtures/mes.json`（由脚本从 `src/data/mes.js` 导出），报警支持确认/恢复状态变更与 SSE 实时推送（含 45s 演示模拟器）。
+
+```bash
+# 数据源变更后重新导出 fixture
+node apps/api-java/scripts/export-fixtures.mjs
+
+# 构建并启动（Maven 位于仓库根 .tools/，首次需联网拉依赖）
+.tools\apache-maven-3.9.9\bin\mvn.cmd -f apps/api-java/pom.xml package -DskipTests
+java -jar apps/api-java/target/api-java-0.1.0.jar
+
+# 前端默认走真实后端；置 VITE_USE_MOCK=true 回退本地示例数据
+```
 
 左侧导航与顶栏在 `src/components/layout.jsx`；全部示例数据集中在 `src/data/mes.js`，替换为真实数据只需改这一个文件。
 

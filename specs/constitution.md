@@ -4,8 +4,9 @@
 
 - **项目**：FluxMES · 流程制造执行系统（Food-grade Process MES）
 - **适用行业**：食品 / 食品添加剂流程制造（示例产线：柠檬酸发酵 — 清禾生物 · 一车间）
-- **当前阶段**：Phase 0 — 高保真原型（纯前端 + Mock 数据），依据本章程向工业级系统演进
-- **文档版本**：v1.0 · 2026-08-26
+- **当前阶段**：Phase H 已完成（PostgreSQL 持久化 + 食品行业合规 + 设备/配方/追溯三模块落地）；
+  Phase I 规划中（生产执行深化 → 质量体系 RegTech）
+- **文档版本**：v1.1 · 2026-09-14（v1.0 · 2026-08-26）
 - **工作流**：Spec Kit（constitution → specify → plan → tasks → implement → analyze）
 
 ---
@@ -76,7 +77,13 @@ FluxMES 面向**流程型食品制造企业的制造执行层（MES）**，覆�
 - 每个 `spec.md` 必须含：用户场景、功能需求、非功能需求、边界、成功标准（可验收）。
 - 每个 `plan.md` 必须含：架构/数据模型、关键决策、集成点、合规与安全设计、风险。
 - 每个 `tasks.md` 必须含：有序任务、优先级（P0/P1/P2）、每条任务的验收标准；现状已实现项标注「已原型实现」。
-- 模块拆分：`production-cockpit` / `batch-management` / `quality-management` / `alarm-center`；规划中模块 `equipment-monitor` / `recipe-management` / `traceability` 待后续 specify。
+- 模块拆分：
+  - 已 specify：`production-cockpit` / `batch-management` / `quality-management` / `alarm-center` /
+    `equipment-management` / `recipe-management` / `traceability` / `personnel-certification` /
+    `weighing-dispensing` / `multi-site`；
+  - 规划中（Phase I）：`production-execution` / `quality-regtech`。
+- **回填纪律**：任何先落地后补文档的能力，其 `spec.md` 须在文首标注「回填」，
+  `plan.md` 标注实现状态，`tasks.md` 用 ✅/⬜ 区分已实现与待办，避免文档与代码脱节。
 
 ## 8. 质量要求（Quality Bar）
 
@@ -91,13 +98,18 @@ FluxMES 面向**流程型食品制造企业的制造执行层（MES）**，覆�
 | 模块 | 路径 | 状态 |
 | --- | --- | --- |
 | 项目章程 | `specs/constitution.md` | 本文件 |
-| 生产驾驶舱 | `specs/production-cockpit/` | Phase 0 已实现 |
-| 批次管理 | `specs/batch-management/` | Phase 0 已实现 |
-| 质量管理 | `specs/quality-management/` | Phase 0 已实现 |
-| 报警中心 | `specs/alarm-center/` | Phase 0 已实现 |
-| 设备监控（规划） | — | 未启动 |
-| 配方管理（规划） | — | 未启动 |
-| 追溯查询（规划） | — | 未启动 |
+| 生产驾驶舱 | `specs/production-cockpit/` | Phase 0 已实现 · Phase 1 持久化 + D2 多产线 / D3 班报 |
+| 批次管理 | `specs/batch-management/` | Phase 0 已实现 · Phase 1 状态机 + 分页 + 放行锁定 |
+| 质量管理 | `specs/quality-management/` | Phase 0 已实现 · Phase 1 控制限 + 判异 + COA 放行 |
+| 报警中心 | `specs/alarm-center/` | Phase 0 已实现 · Phase 1 审计 + D1 SLA 升级/抑制 |
+| 设备管理 | `specs/equipment-management/` | ✅ Phase H 已实现（T1–T11）；T12 OPC-UA 采集为 Phase 2 |
+| 配方管理 | `specs/recipe-management/` | ✅ Phase H 已实现（版本受控 + 审批流 + 影响分析） |
+| 追溯管理 | `specs/traceability/` | ✅ Phase H 已实现（复用 F2 表 + 谱系 + 查询审计） |
+| 人员资质与健康证 | `specs/personnel-certification/` | ✅ Phase G2 已实现；本文档为回填（2026-09-14） |
+| 配料称量与容差 | `specs/weighing-dispensing/` | ✅ Phase G3 已实现；本文档为回填（2026-09-14） |
+| 多厂区 | `specs/multi-site/` | ◐ Phase G4 已实现过滤维度；强制数据隔离待办（T8） |
+| 生产执行 | `specs/production-execution/` | ⬜ Phase I 待实现 · **优先**（工单/派工/报工/停机 → 真实 OEE） |
+| 质量体系 RegTech | `specs/quality-regtech/` | ⬜ Phase I 待实现（CAPA 闭环 / 内审 / 电子签名） |
 
 ---
 

@@ -3,40 +3,71 @@ server:
 
 spring:
   application:
-    name: fluxmes-alarm-api
+    name: fluxmes-api
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/fluxmes}
-    username: ${DB_USER:fluxmes}
-    password: ${DB_PASSWORD:fluxmes}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    open-in-view: false
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: Asia/Shanghai
+    url: jdbc:postgresql://localhost:5433/fluxmes
+    username: fluxmes
+    password: fluxmes
+  sql:
+    init:
+      mode: always          # schema.sql 全部 IF NOT EXISTS，幂等
+      schema-locations: classpath:db/schema.sql,classpath:db/schema-food.sql,classpath:db/schema-p3.sql,classpath:db/schema-p4.sql,classpath:db/schema-p5.sql,classpath:db/schema-p6.sql,classpath:db/schema-p7.sql
+  jackson:
+    default-property-inclusion: non_null
+  web:
+    resources:
+      add-mappings: false   # 纯 API 服务；swagger-ui 由 springdoc 自身 handler 提供
 
-# 报警响应 SLA 阈值（分钟），按级别配置；critical 超时触发升级（FR-8/FR-9，P1 接入升级通知）
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
 fluxmes:
-  alarm:
-    sla-minutes:
-      critical: 5
-      major: 15
-      minor: 30
-    # 模拟 SCADA/OPC-UA 报警流（T5 演示）：周期产生新报警并经 SSE 推送。生产置 enabled=false 并接真实采集。
-    simulator:
-      enabled: true
-      initial-delay-ms: 15000
-      interval-ms: 25000
+  jwt:
+    # HS256 密钥（≥32 字节）；生产环境必须改为环境变量注入
+    secret: fluxmes-dev-secret-please-override-in-production
+    expire-hours: 12
 
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-  api-docs:
-    path: /v3/api-docs
+  # ── 外部系统接入（Phase J）────────────────────────────────────────────
+  # mode: mock = 本地无设备/无外部系统，产出带 dataSource=MOCK 标识的演示数据；
+  #       real = 连真实系统或协议模拟器（SCADA 走 OPC-UA，LIMS/ERP/WMS 走 REST）。
+  # 四个系统可独立切换，支持「部分 mock、部分真实」的现场过渡态。
+  # 真实端点：
+  #   SCADA : tools/ext-simulator 的 ScadaSimulatorMain（Milo），默认 opc.tcp://localhost:4840
+  #   LIMS/ERP/WMS : tools/ext-simulator 的 ExtMockServiceMain，默认 http://localhost:9100
+  integration:
+    scada:
+      mode: mock
+      # REAL 模式下这是 OPC-UA 端点 URL。路径段由 SCADA 网关（或 tools/ext-simulator）决定，
+      # 模拟器默认是 /fluxmes；端点 URL 必须与网关 ConfiguredEndpoint 完全一致，否则发现阶段匹配不上
+      endpoint: "opc.tcp://localhost:4840/fluxmes"
+      timeout-ms: 3000
+      retries: 1
+    lims:
+      mode: mock
+      endpoint: "http://localhost:9100/lims"
+      timeout-ms: 3000
+      retries: 1
+    erp:
+      mode: mock
+      endpoint: "http://localhost:9100/erp"
+      timeout-ms: 3000
+      retries: 1
+    wms:
+      mode: mock
+      endpoint: "http://localhost:9100/wms"
+      timeout-ms: 3000
+      retries: 1
+    # 报警模拟器（每 45s 造一条报警）。生产必须置 false，否则模拟数据会污染报警表。
+    alarm-simulator-enabled: true
+    # 设备参数采集周期（秒），对应 NFR-1「一般设备 ≤30s」
+    collect-interval-seconds: 30
+    collect-on-startup: true
+    # 原始采样保留天数。30s×24 指标≈6.9 万行/天，长期留存依赖后续汇总/归档
+    metric-retention-days: 7
 
 logging:
   level:
-    com.fluxmes: INFO
+    root: info

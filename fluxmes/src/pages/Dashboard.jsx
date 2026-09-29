@@ -8,7 +8,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { useState } from 'react'
 import { ChevronRight, RefreshCw, TriangleAlert } from 'lucide-react'
+import { LineSwitcher, ShiftReportActions, SiteSwitcher } from '../components/dashboard-controls'
 import { Badge, Button, Card, Dot, Progress } from '../components/ui'
 import { PageHeader } from '../components/layout'
 import { AXIS_TICK, ChartTip } from '../components/charts'
@@ -39,7 +41,10 @@ function KpiCard({ label, badge, value, unit, sub, extra }) {
 }
 
 export default function Dashboard({ onNavigate }) {
-  const { data: cockpit } = useCockpit()
+  // G4 · 厂区 + D2 · 产线双维度切换
+  const [site, setSite] = useState(undefined)
+  const [line, setLine] = useState(undefined)
+  const { data: cockpit } = useCockpit(site, line)
   const kpis = cockpit?.kpis
   const equipment = cockpit?.equipment ?? []
   const productionTrend = cockpit?.productionTrend ?? []
@@ -52,10 +57,18 @@ export default function Dashboard({ onNavigate }) {
         desc="一车间实时生产总览 · 数据每 30 秒自动采集，最近更新 12 秒前"
         actions={
           <>
+            <SiteSwitcher
+              value={site}
+              onChange={(s) => {
+                setSite(s)
+                setLine(undefined) // 切换厂区后清空产线，避免跨厂区残留
+              }}
+            />
+            <LineSwitcher value={line} onChange={setLine} site={site} />
             <Button variant="ghost">
               <RefreshCw className="h-3.5 w-3.5" /> 刷新
             </Button>
-            <Button variant="primary">生成班报</Button>
+            <ShiftReportActions line={line} site={site} />
           </>
         }
        data-qoder-id="qel-pageheader-e3a3cf44" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-pageheader-e3a3cf44&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;pageheader&quot;,&quot;loc&quot;:{&quot;line&quot;:42,&quot;column&quot;:7}}"/>
@@ -65,10 +78,20 @@ export default function Dashboard({ onNavigate }) {
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4" data-component="kpi-row" data-qoder-id="qel-kpi-row-b498e95c" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-kpi-row-b498e95c&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;kpi-row&quot;,&quot;loc&quot;:{&quot;line&quot;:56,&quot;column&quot;:7}}">
         <KpiCard
           label="今日产量"
-          badge={<Badge tone="accent" dot={false}>超时间进度 {kpis?.dailyOutput?.vsSchedulePct ?? 4.5}%</Badge>}
-          value={kpis?.dailyOutput?.actual ?? '33.4'}
+          badge={
+            <Badge tone={kpis?.dailyOutput?.dataSufficient === false ? 'muted' : 'accent'} dot={false}>
+              {kpis?.dailyOutput?.vsSchedulePct == null
+                ? '暂无当日批次'
+                : `超时间进度 ${kpis.dailyOutput.vsSchedulePct}%`}
+            </Badge>
+          }
+          value={kpis?.dailyOutput?.actual ?? '—'}
           unit="t / 日计划 48 t"
-          sub="截至 15:00 · 连续达标 6 天"
+          sub={
+            kpis?.dailyOutput?.dataSufficient === false
+              ? '当日无批次，如实显示 0（已移除示例基线）'
+              : '截至 15:00 · 按批次进度折算'
+          }
           extra={<Progress className="mt-3" value={kpis?.dailyOutput?.progressPct ?? 69.6} tone="primary" />}
          data-qoder-id="qel-kpicard-572efebf" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-kpicard-572efebf&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;kpicard&quot;,&quot;loc&quot;:{&quot;line&quot;:57,&quot;column&quot;:9}}"/>
         <KpiCard
@@ -80,10 +103,18 @@ export default function Dashboard({ onNavigate }) {
          data-qoder-id="qel-kpicard-582f0052" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-kpicard-582f0052&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;kpicard&quot;,&quot;loc&quot;:{&quot;line&quot;:65,&quot;column&quot;:9}}"/>
         <KpiCard
           label="综合效率 OEE"
-          badge={<Badge tone="primary" dot={false}>目标 85%</Badge>}
-          value={kpis?.oee?.value ?? '87.7'}
-          unit="%"
-          sub="时间开动 92.1 × 性能 96.5 × 合格 98.7"
+          badge={
+            <Badge tone={kpis?.oee?.dataSufficient === false ? 'warning' : 'primary'} dot={false}>
+              {kpis?.oee?.dataSufficient === false ? '数据不足' : '目标 85%'}
+            </Badge>
+          }
+          value={kpis?.oee?.value ?? '—'}
+          unit={kpis?.oee?.value == null ? '' : '%'}
+          sub={
+            kpis?.oee?.value == null
+              ? '无报工/停机原始数据，不采用兜底值（Phase I）'
+              : `可用率 ${kpis?.oee?.availability} × 性能 ${kpis?.oee?.performance} × 良品 ${kpis?.oee?.quality}（按执行事实）`
+          }
          data-qoder-id="qel-kpicard-592f01e5" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-kpicard-592f01e5&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Dashboard.jsx&quot;,&quot;componentName&quot;:&quot;Dashboard&quot;,&quot;elementRole&quot;:&quot;kpicard&quot;,&quot;loc&quot;:{&quot;line&quot;:72,&quot;column&quot;:9}}"/>
         <KpiCard
           label="活跃报警"

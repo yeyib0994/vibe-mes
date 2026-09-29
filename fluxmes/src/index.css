@@ -29,6 +29,9 @@
   --warn-soft: color-mix(in srgb, var(--warn) 13%, transparent);
   --danger: color-mix(in srgb, #ff5b4f 86%, var(--seed-fg));
   --danger-soft: color-mix(in srgb, var(--danger) 13%, transparent);
+  /* success 由 accent 绿色派生（Badge/Dot 的 success 语义色，此前缺失导致 tone 落到 undefined） */
+  --success: color-mix(in srgb, var(--seed-accent) 86%, var(--seed-fg));
+  --success-soft: color-mix(in srgb, var(--success) 14%, transparent);
   --chart-grid: color-mix(in srgb, var(--seed-fg) 7%, transparent);
 }
 

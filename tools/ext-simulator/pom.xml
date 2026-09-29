@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FluxMES 外部系统模拟器（tools/ext-simulator）
+
+  定位：**不属于 MES 应用**，而是"外部系统那一侧"的替身。独立进程运行，
+  目的有两个：
+    1) 本地没有 PLC / SCADA / LIMS / ERP / WMS 时，仍能验证真实的协议与 HTTP 契约；
+    2) 能单独 kill 掉，用来验证"MES 在外部系统不可用时如何降级"。
+
+  两个可独立启动的入口：
+    ScadaSimulatorMain  —— Eclipse Milo OPC-UA Server（真协议，opc.tcp://0.0.0.0:4840）
+    ExtMockServiceMain  —— LIMS / ERP / WMS 的 HTTP 契约 + 故障注入（JDK 内置 HttpServer）
+
+  构建：bash scripts/mvn-sim.sh package
+  运行：java -cp target/ext-simulator-0.1.0.jar com.fluxmes.sim.ExtMockServiceMain
+        （或 package 后用 scripts/sim-up.sh 一键起两个进程）
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.fluxmes</groupId>
+  <artifactId>ext-simulator</artifactId>
+  <version>0.1.0</version>
+  <name>fluxmes-ext-simulator</name>
+  <description>FluxMES 外部系统模拟器：OPC-UA Server + LIMS/ERP/WMS HTTP 契约（本地无设备时使用）</description>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <milo.version>0.6.16</milo.version>
+    <slf4j.version>2.0.16</slf4j.version>
+  </properties>
+
+  <dependencies>
+    <!-- OPC-UA 服务端（模拟 SCADA 侧暴露的地址空间） -->
+    <dependency>
+      <groupId>org.eclipse.milo</groupId>
+      <artifactId>sdk-server</artifactId>
+      <version>${milo.version}</version>
+    </dependency>
+
+    <!-- 日志：Milo 依赖 slf4j-api，需要一个绑定才能看到输出 -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- 独立可执行 jar：显式指定 Main-Class（两个入口按需改） -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.fluxmes.sim.ExtMockServiceMain</mainClass>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <!-- 依赖复制到 lib/，便于用 java -cp 直接跑两个入口 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>package</phase>
+            <goals><goal>copy-dependencies</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

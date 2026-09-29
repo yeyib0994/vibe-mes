@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,jsx}'],
+  content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -16,7 +16,10 @@ export default {
         primary: { DEFAULT: 'var(--seed-primary)', soft: 'var(--primary-soft)' },
         accent: { DEFAULT: 'var(--seed-accent)', soft: 'var(--accent-soft)' },
         warn: { DEFAULT: 'var(--warn)', soft: 'var(--warn-soft)' },
+        // 兼容别名：既有代码统一写 text-warning / bg-warning-soft（历史上缺少该 token，类名失效）
+        warning: { DEFAULT: 'var(--warn)', soft: 'var(--warn-soft)' },
         danger: { DEFAULT: 'var(--danger)', soft: 'var(--danger-soft)' },
+        success: { DEFAULT: 'var(--success)', soft: 'var(--success-soft)' },
       },
       borderRadius: {
         lg: 'var(--seed-radius)',

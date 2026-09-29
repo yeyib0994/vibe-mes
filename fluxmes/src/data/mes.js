@@ -269,3 +269,278 @@ export const alarmTopSources = [
 
 // 驾驶舱引用的最新报警（取列表前 4 条）
 export const recentAlarms = alarmData.slice(0, 4)
+
+/* ---------------- 设备监控（规划模块 equipment-monitor）---------------- */
+
+// 每台设备的监控参数、运行指标与维护信息（趋势序列由 api/equipment.js 按 seed 生成）。
+export const equipmentSpec = [
+  {
+    code: 'F-101', name: '发酵罐 #1', type: '机械搅拌发酵罐', vol: '50 m³', batch: '—',
+    health: 'good', runHours: 6421, mtbf: 720,
+    metrics: { oee: 88.4, availability: 92.1, performance: 96.0, quality: 99.6 },
+    maint: { last: '2026-07-18', next: '2026-09-05', nextTask: '更换搅拌轴机械密封', cycleDays: 49 },
+    params: [
+      { name: '罐温', value: 36.8, unit: '°C', lo: 35.0, hi: 38.0, key: 'temp', seed: 36.8, amp: 0.35 },
+      { name: 'pH', value: 2.05, unit: '', lo: 1.9, hi: 2.3, key: 'ph', seed: 2.05, amp: 0.05 },
+      { name: '溶氧 DO', value: 34, unit: '%', lo: 25, hi: 60, key: 'do', seed: 34, amp: 2.4 },
+      { name: '搅拌转速', value: 180, unit: 'rpm', lo: 150, hi: 220, key: 'rpm', seed: 180, amp: 3 },
+    ],
+  },
+  {
+    code: 'F-102', name: '发酵罐 #2', type: '机械搅拌发酵罐', vol: '50 m³', batch: 'B-260826-014',
+    health: 'watch', runHours: 5980, mtbf: 640,
+    metrics: { oee: 84.1, availability: 90.3, performance: 94.7, quality: 98.2 },
+    maint: { last: '2026-06-28', next: '2026-08-30', nextTask: '溶氧电极标定 + 泡沫探头检查', cycleDays: 63 },
+    params: [
+      { name: '罐温', value: 37.2, unit: '°C', lo: 35.0, hi: 38.0, key: 'temp', seed: 37.2, amp: 0.4 },
+      { name: 'pH', value: 1.98, unit: '', lo: 1.9, hi: 2.3, key: 'ph', seed: 1.98, amp: 0.06 },
+      { name: '溶氧 DO', value: 18, unit: '%', lo: 25, hi: 60, key: 'do', seed: 18, amp: 1.8 },
+      { name: '搅拌转速', value: 182, unit: 'rpm', lo: 150, hi: 220, key: 'rpm', seed: 182, amp: 3 },
+    ],
+  },
+  {
+    code: 'F-103', name: '发酵罐 #3', type: '机械搅拌发酵罐', vol: '50 m³', batch: '—',
+    health: 'good', runHours: 6105, mtbf: 690,
+    metrics: { oee: 86.2, availability: 91.4, performance: 95.2, quality: 99.1 },
+    maint: { last: '2026-07-22', next: '2026-09-10', nextTask: 'CIP 喷嘴检查与验证', cycleDays: 50 },
+    params: [
+      { name: '清洗温度', value: 85.0, unit: '°C', lo: 80, hi: 88, key: 'temp', seed: 85.0, amp: 0.5 },
+      { name: '碱液流量', value: 2.1, unit: 'm³/h', lo: 1.5, hi: 3.0, key: 'flow', seed: 2.1, amp: 0.08 },
+      { name: '电导率', value: 42, unit: 'mS/cm', lo: 30, hi: 60, key: 'cond', seed: 42, amp: 1.5 },
+    ],
+  },
+  {
+    code: 'M-201', name: '配料罐 #1', type: '夹套搅拌配料罐', vol: '20 m³', batch: 'B-260826-005',
+    health: 'good', runHours: 4230, mtbf: 810,
+    metrics: { oee: 90.1, availability: 93.5, performance: 96.8, quality: 99.7 },
+    maint: { last: '2026-08-02', next: '2026-09-15', nextTask: '底阀密封圈更换', cycleDays: 44 },
+    params: [
+      { name: '料温', value: 45.0, unit: '°C', lo: 42, hi: 48, key: 'temp', seed: 45.0, amp: 0.4 },
+      { name: '搅拌转速', value: 62, unit: 'rpm', lo: 50, hi: 80, key: 'rpm', seed: 62, amp: 2.2 },
+      { name: '搅拌电流', value: 33.2, unit: 'A', lo: 25, hi: 40, key: 'cur', seed: 33.2, amp: 1.4 },
+    ],
+  },
+  {
+    code: 'E-501', name: 'MVR 浓缩器', type: '机械蒸汽再压缩', vol: '8 t/h', batch: '—',
+    health: 'fault', runHours: 5120, mtbf: 480,
+    metrics: { oee: 71.6, availability: 79.4, performance: 90.2, quality: 99.8 },
+    maint: { last: '2026-07-30', next: '2026-08-29', nextTask: '蒸汽调节阀检修（当前报警）', cycleDays: 30 },
+    params: [
+      { name: '加热蒸汽压力', value: 0.62, unit: 'MPa', lo: 0.3, hi: 0.6, key: 'press', seed: 0.62, amp: 0.015 },
+      { name: '真空度', value: -0.052, unit: 'MPa', lo: -0.06, hi: -0.04, key: 'vac', seed: -0.052, amp: 0.001 },
+      { name: '浓缩温度', value: 68.5, unit: '°C', lo: 65, hi: 72, key: 'temp', seed: 68.5, amp: 0.5 },
+    ],
+  },
+  {
+    code: 'C-601', name: '结晶罐', type: '真空冷却结晶器', vol: '12 m³', batch: 'B-260826-013',
+    health: 'good', runHours: 3890, mtbf: 760,
+    metrics: { oee: 89.3, availability: 92.8, performance: 96.1, quality: 99.5 },
+    maint: { last: '2026-08-08', next: '2026-09-20', nextTask: '晶种投料阀清洁验证', cycleDays: 43 },
+    params: [
+      { name: '结晶温度', value: 28.5, unit: '°C', lo: 26, hi: 31, key: 'temp', seed: 28.5, amp: 0.3 },
+      { name: '搅拌转速', value: 42, unit: 'rpm', lo: 35, hi: 55, key: 'rpm', seed: 42, amp: 1.5 },
+      { name: '冷却水流量', value: 15.8, unit: 'm³/h', lo: 16, hi: 24, key: 'flow', seed: 15.8, amp: 0.4 },
+    ],
+  },
+  {
+    code: 'D-701', name: '流化床干燥机', type: '振动流化床', vol: '3 t/h', batch: 'B-260826-011',
+    health: 'good', runHours: 4560, mtbf: 700,
+    metrics: { oee: 87.9, availability: 91.8, performance: 96.4, quality: 99.3 },
+    maint: { last: '2026-07-26', next: '2026-09-08', nextTask: '布袋除尘器压差检查', cycleDays: 44 },
+    params: [
+      { name: '进风温度', value: 78.2, unit: '°C', lo: 75, hi: 82, key: 'temp', seed: 78.2, amp: 0.6 },
+      { name: '出风温度', value: 61.4, unit: '°C', lo: 58, hi: 63, key: 'tout', seed: 61.4, amp: 0.8 },
+      { name: '物料水分', value: 0.42, unit: '%', lo: 0, hi: 0.5, key: 'water', seed: 0.42, amp: 0.02 },
+    ],
+  },
+  {
+    code: 'F-104', name: '发酵罐 #4', type: '机械搅拌发酵罐', vol: '50 m³', batch: '—',
+    health: 'idle', runHours: 6680, mtbf: 690,
+    metrics: { oee: 0, availability: 0, performance: 0, quality: 0 },
+    maint: { last: '2026-08-20', next: '2026-09-25', nextTask: '已 CIP 完成，待进批前灭菌', cycleDays: 36 },
+    params: [
+      { name: '罐温', value: 24.6, unit: '°C', lo: 20, hi: 30, key: 'temp', seed: 24.6, amp: 0.2 },
+    ],
+  },
+]
+
+export const equipmentHealthMap = {
+  good: { label: '健康', tone: 'accent' },
+  watch: { label: '关注', tone: 'warn' },
+  fault: { label: '故障', tone: 'danger' },
+  idle: { label: '待机', tone: 'muted' },
+}
+
+/* ---------------- 配方管理（规划模块 recipe-management）---------------- */
+
+export const recipeStatusMap = {
+  active: { label: '生效中', tone: 'accent' },
+  draft: { label: '草稿', tone: 'warn' },
+  obsolete: { label: '已停用', tone: 'muted' },
+}
+
+export const recipes = [
+  {
+    code: 'R-CA-07', name: '一水柠檬酸深层发酵配方', product: '一水柠檬酸', version: 'v3.2',
+    status: 'active', updatedBy: '工艺组 刘强', updatedAt: '2026-07-10', usedBatches: 128, yield: '92.6%',
+    stages: ['配料', '灭菌', '接种', '发酵', '过滤', '精制', '结晶', '干燥', '包装'],
+    params: [
+      { stage: '灭菌', name: '灭菌温度', lo: 121, hi: 124, unit: '°C', ccp: true },
+      { stage: '灭菌', name: '灭菌时间', lo: 20, hi: 30, unit: 'min', ccp: true },
+      { stage: '接种', name: '接种量', lo: 6, hi: 8, unit: '%', ccp: false },
+      { stage: '发酵', name: '发酵温度', lo: 35.5, hi: 37.5, unit: '°C', ccp: false },
+      { stage: '发酵', name: 'pH', lo: 1.9, hi: 2.3, unit: '', ccp: false },
+      { stage: '发酵', name: '溶氧 DO', lo: 25, hi: 60, unit: '%', ccp: false },
+      { stage: '干燥', name: '终点水分', lo: 0, hi: 0.5, unit: '%', ccp: false },
+    ],
+    history: [
+      { v: 'v3.2', date: '2026-07-10', by: '刘强', note: '接种量 6%→7%，缩短延滞期约 3 h' },
+      { v: 'v3.1', date: '2026-05-22', by: '陈志远', note: '发酵补料速率优化，糖耗更平稳' },
+      { v: 'v3.0', date: '2026-03-15', by: '刘强', note: '换用新型斜面菌种，产酸率提升 2.1%' },
+    ],
+  },
+  {
+    code: 'R-TS-12', name: '食品级柠檬酸钠中和结晶配方', product: '食品级柠檬酸钠', version: 'v2.1',
+    status: 'active', updatedBy: '工艺组 王芳', updatedAt: '2026-06-28', usedBatches: 96, yield: '97.1%',
+    stages: ['配料', '中和反应', '脱色', '离子交换', '浓缩', '结晶', '离心干燥', '包装'],
+    params: [
+      { stage: '中和反应', name: '中和终点 pH', lo: 7.0, hi: 7.4, unit: '', ccp: true },
+      { stage: '中和反应', name: '反应温度', lo: 55, hi: 65, unit: '°C', ccp: false },
+      { stage: '脱色', name: '活性炭投加', lo: 0.8, hi: 1.5, unit: '%', ccp: false },
+      { stage: '结晶', name: '结晶温度', lo: 26, hi: 31, unit: '°C', ccp: false },
+      { stage: '离心干燥', name: '成品水分', lo: 0, hi: 1.0, unit: '%', ccp: false },
+    ],
+    history: [
+      { v: 'v2.1', date: '2026-06-28', by: '王芳', note: '离子交换树脂再生周期由 6 批延长至 8 批' },
+      { v: 'v2.0', date: '2026-04-10', by: '王芳', note: '新增脱色工序，色度稳定性提升' },
+    ],
+  },
+  {
+    code: 'R-AC-03', name: '无水柠檬酸干燥包装配方', product: '无水柠檬酸', version: 'v1.8',
+    status: 'active', updatedBy: '工艺组 张伟', updatedAt: '2026-06-15', usedBatches: 74, yield: '98.3%',
+    stages: ['配料', '灭菌', '发酵', '过滤', '精制', '结晶', '离心干燥', '包装'],
+    params: [
+      { stage: '离心干燥', name: '进风温度', lo: 75, hi: 82, unit: '°C', ccp: false },
+      { stage: '离心干燥', name: '成品水分', lo: 0, hi: 0.5, unit: '%', ccp: true },
+      { stage: '包装', name: '包装间湿度', lo: 0, hi: 45, unit: '%RH', ccp: true },
+    ],
+    history: [
+      { v: 'v1.8', date: '2026-06-15', by: '张伟', note: '包装环境湿度限值由 50% 收紧至 45%' },
+      { v: 'v1.7', date: '2026-05-02', by: '张伟', note: '结晶母液回用比例上限提升至 12%' },
+    ],
+  },
+  {
+    code: 'R-NS-02', name: '发酵营养盐配制配方', product: '发酵营养盐', version: 'v1.1',
+    status: 'active', updatedBy: '工艺组 李倩', updatedAt: '2026-05-20', usedBatches: 52, yield: '99.4%',
+    stages: ['配料', '溶解', '过滤', '灭菌', '灌装', '贴标', '入库'],
+    params: [
+      { stage: '溶解', name: '溶解温度', lo: 50, hi: 60, unit: '°C', ccp: false },
+      { stage: '灭菌', name: '灭菌温度', lo: 115, hi: 121, unit: '°C', ccp: true },
+      { stage: '灌装', name: '装量偏差', lo: -1, hi: 1, unit: '%', ccp: false },
+    ],
+    history: [
+      { v: 'v1.1', date: '2026-05-20', by: '李倩', note: '过滤精度由 10 μm 提升至 5 μm' },
+    ],
+  },
+  {
+    code: 'R-CA-07', name: '一水柠檬酸深层发酵配方', product: '一水柠檬酸', version: 'v3.3-rc',
+    status: 'draft', updatedBy: '工艺组 刘强', updatedAt: '2026-08-24', usedBatches: 0, yield: '试产中',
+    stages: ['配料', '灭菌', '接种', '发酵', '过滤', '精制', '结晶', '干燥', '包装'],
+    params: [
+      { stage: '发酵', name: '发酵温度', lo: 35.0, hi: 37.0, unit: '°C', ccp: false },
+      { stage: '发酵', name: '通气量', lo: 0.6, hi: 1.0, unit: 'vvm', ccp: false },
+    ],
+    history: [
+      { v: 'v3.3-rc', date: '2026-08-24', by: '刘强', note: '候选：变温发酵策略，试产 3 批待评审' },
+    ],
+  },
+  {
+    code: 'R-CA-07', name: '一水柠檬酸深层发酵配方', product: '一水柠檬酸', version: 'v2.9',
+    status: 'obsolete', updatedBy: '工艺组 陈', updatedAt: '2025-12-01', usedBatches: 210, yield: '90.1%',
+    stages: ['配料', '灭菌', '接种', '发酵', '过滤', '精制', '结晶', '干燥', '包装'],
+    params: [
+      { stage: '发酵', name: '发酵温度', lo: 35.5, hi: 38.0, unit: '°C', ccp: false },
+    ],
+    history: [
+      { v: 'v2.9', date: '2025-12-01', by: '陈', note: '历史版本，已被 v3.0 替代归档' },
+    ],
+  },
+]
+
+/* ---------------- 追溯查询（规划模块 traceability）---------------- */
+
+// 以成品批次为中心的正向/逆向追溯链（合规 C1：原料↔工序↔设备↔操作员↔检验↔入库↔发货）。
+export const traceableBatches = [
+  { id: 'B-260826-007', product: '一水柠檬酸', recipe: 'R-CA-07 v3.2', status: 'released', qty: '11.9 t', wh: 'WH-A-03-12' },
+  { id: 'B-260825-031', product: '无水柠檬酸', recipe: 'R-AC-03 v1.8', status: 'released', qty: '6.1 t', wh: 'WH-A-01-08' },
+  { id: 'B-260826-005', product: '发酵营养盐', recipe: 'R-NS-02 v1.1', status: 'released', qty: '2.4 t', wh: 'WH-B-02-05' },
+]
+
+export const traceChains = {
+  'B-260826-007': {
+    product: '一水柠檬酸', recipe: 'R-CA-07 v3.2', qty: '11.9 t', status: 'released',
+    forward: [
+      { type: 'material', label: '原料投入', title: '玉米淀粉', value: 'RM-20260823', meta: '供应商 华北淀粉 · 检验合格 · 2.16 t' },
+      { type: 'material', label: '辅料', title: '接种物', value: 'ZJ-0812', meta: '斜面菌种 Aspergillus niger · 活力合格' },
+      { type: 'process', label: '配料 · 灭菌', title: 'M-201 配料罐 #1 → S-201 连消机', value: '08-24 16:20', meta: '121°C / 25 min（CCP-1）· 操作员 张伟' },
+      { type: 'process', label: '发酵', title: 'F-101 发酵罐 #1', value: '68 h', meta: '36.8°C · pH 2.05 · DO 34% · 操作员 张伟' },
+      { type: 'process', label: '过滤 · 精制', title: 'B-301 板框过滤 → 离子交换', value: '08-27 12:30', meta: '碳酸钙中和 · 母液回用 12%' },
+      { type: 'process', label: '结晶 · 干燥', title: 'C-601 结晶罐 → D-701 流化床', value: '收率 99.4%', meta: '终点水分 0.38%（CCP 合格）' },
+      { type: 'test', label: '成品检验', title: 'COA-260826-07', value: '合格', meta: '柠檬酸含量 99.52% · 依据 GB 1886.25—2016 · 林晓芸' },
+      { type: 'warehouse', label: '入库放行', title: 'WH-A-03-12', value: '11.9 t', meta: '放行 QA 孙磊 · 08-26 14:10 · 状态 可发货' },
+      { type: 'shipment', label: '发货', title: '华东食品添加剂', value: 'SO-26082612', meta: '承运 冷链直达 · 800 kg × 14 托' },
+    ],
+    backward: [
+      { type: 'shipment', label: '发货', title: '华东食品添加剂', value: 'SO-26082612', meta: '出库 08-27 09:00' },
+      { type: 'warehouse', label: '库存批次', title: 'WH-A-03-12', value: '11.9 t', meta: '放行 08-26 14:10' },
+      { type: 'test', label: 'COA', title: 'COA-260826-07', value: '合格', meta: '全项 12 项通过' },
+      { type: 'batch', label: '成品批次', title: 'B-260826-007', value: '一水柠檬酸', meta: '配方 R-CA-07 v3.2 · 操作员 张伟' },
+      { type: 'process', label: '关键工序', title: '发酵 F-101', value: '68 h', meta: '灭菌 CCP-1 记录完整' },
+      { type: 'material', label: '原料批号', title: '玉米淀粉 RM-20260823', value: '2.16 t', meta: '供应商批检验报告 SUP-0823' },
+      { type: 'material', label: '接种物', title: 'ZJ-0812', value: '合格', meta: '菌种库 v3.0 · 传代 2 代' },
+    ],
+  },
+  'B-260825-031': {
+    product: '无水柠檬酸', recipe: 'R-AC-03 v1.8', qty: '6.1 t', status: 'released',
+    forward: [
+      { type: 'material', label: '原料投入', title: '玉米淀粉', value: 'RM-20260818', meta: '供应商 华北淀粉 · 合格 · 1.10 t' },
+      { type: 'process', label: '配料 · 发酵', title: 'M-201 → F-103 发酵罐 #3', value: '08-23 21:10', meta: '119 h · 操作员 李倩' },
+      { type: 'process', label: '精制 · 结晶', title: '精制 → C-601 结晶罐', value: '08-25 08:00', meta: '结晶母液回用 12%' },
+      { type: 'process', label: '离心干燥', title: 'D-701 流化床干燥机', value: '收率 99.1%', meta: '水分 0.40% · 粒度合格' },
+      { type: 'test', label: '成品检验', title: 'COA-260825-31', value: '合格', meta: '含量 99.48% · 重金属 < 限值 · 林晓芸' },
+      { type: 'warehouse', label: '入库放行', title: 'WH-A-01-08', value: '6.1 t', meta: '放行 QA 孙磊 · 08-25 18:40' },
+    ],
+    backward: [
+      { type: 'warehouse', label: '库存批次', title: 'WH-A-01-08', value: '6.1 t', meta: '放行 08-25 18:40' },
+      { type: 'test', label: 'COA', title: 'COA-260825-31', value: '合格', meta: '全项通过' },
+      { type: 'batch', label: '成品批次', title: 'B-260825-031', value: '无水柠檬酸', meta: '配方 R-AC-03 v1.8 · 操作员 李倩' },
+      { type: 'material', label: '原料批号', title: '玉米淀粉 RM-20260818', value: '1.10 t', meta: '供应商批检验报告 SUP-0818' },
+    ],
+  },
+  'B-260826-005': {
+    product: '发酵营养盐', recipe: 'R-NS-02 v1.1', qty: '2.4 t', status: 'released',
+    forward: [
+      { type: 'material', label: '原料投入', title: '硫酸铵 / 玉米浆干粉', value: 'RM-20260815', meta: '内部配制原料 · 合格' },
+      { type: 'process', label: '配料 · 溶解', title: 'M-201 配料罐 #1', value: '08-24 09:00', meta: '55°C 溶解 · 操作员 王芳' },
+      { type: 'process', label: '过滤 · 灭菌', title: '精滤 → S-201', value: '118°C / 22 min', meta: 'CCP 灭菌记录完整' },
+      { type: 'process', label: '灌装 · 贴标', title: '包装线 #3', value: '收率 99.8%', meta: '装量偏差 < 1%' },
+      { type: 'test', label: '成品检验', title: 'COA-260826-05', value: '合格', meta: '氮含量 8.9% · 赵敏' },
+      { type: 'warehouse', label: '入库放行', title: 'WH-B-02-05', value: '2.4 t', meta: '内部使用 · 供发酵车间' },
+    ],
+    backward: [
+      { type: 'warehouse', label: '库存批次', title: 'WH-B-02-05', value: '2.4 t', meta: '内部领用' },
+      { type: 'test', label: 'COA', title: 'COA-260826-05', value: '合格', meta: '氮含量 8.9%' },
+      { type: 'batch', label: '成品批次', title: 'B-260826-005', value: '发酵营养盐', meta: '配方 R-NS-02 v1.1 · 操作员 王芳' },
+      { type: 'material', label: '原料批号', title: 'RM-20260815', value: '—', meta: '内部配制原料' },
+    ],
+  },
+}
+
+export const traceNodeType = {
+  material: { label: '物料', tone: 'primary', icon: 'flask' },
+  process: { label: '工序', tone: 'accent', icon: 'cog' },
+  batch: { label: '批次', tone: 'primary', icon: 'flask' },
+  test: { label: '检验', tone: 'warn', icon: 'check' },
+  warehouse: { label: '入库', tone: 'accent', icon: 'box' },
+  shipment: { label: '发货', tone: 'muted', icon: 'truck' },
+}

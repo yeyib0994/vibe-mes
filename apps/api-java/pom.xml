@@ -2,65 +2,139 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.16</version>
-        <relativePath/>
-    </parent>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.1</version>
+    <relativePath/>
+  </parent>
 
-    <groupId>com.fluxmes</groupId>
-    <artifactId>fluxmes-alarm-api</artifactId>
-    <version>1.0.0</version>
-    <name>fluxmes-alarm-api</name>
-    <description>FluxMES 报警中心后端服务 · 报警生命期 / 确认审计 / 趋势与高频源聚合</description>
+  <groupId>com.fluxmes</groupId>
+  <artifactId>api-java</artifactId>
+  <version>0.2.0</version>
+  <name>fluxmes-api</name>
+  <description>FluxMES 后端：报警/批次/质量/驾驶舱/设备/配方/追溯（Phase 1 落地：PostgreSQL + MyBatis-Plus + JWT + 审计）</description>
 
-    <properties>
-        <java.version>21</java.version>
-        <springdoc.version>2.8.17</springdoc.version>
-    </properties>
+  <properties>
+    <java.version>21</java.version>
+    <mybatis-plus.version>3.5.16</mybatis-plus.version>
+    <jjwt.version>0.12.6</jjwt.version>
+    <!-- Eclipse Milo：Java 实现的 OPC-UA 标准栈。MES 侧只用客户端（sdk-client），
+         服务端由 tools/ext-simulator 单独构建（sdk-server），两者进程与用途分离 -->
+    <milo.version>0.6.16</milo.version>
+  </properties>
 
+  <dependencyManagement>
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- OpenAPI / Swagger UI，供前端契约与联调 -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>${springdoc.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
+      <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-bom</artifactId>
+        <version>${mybatis-plus.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
     </dependencies>
+  </dependencyManagement>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- MyBatis-Plus：Spring Boot 4 专用 starter -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+    </dependency>
+    <!-- 分页插件依赖的 jsqlparser（3.5.9+ 拆分模块） -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-jsqlparser</artifactId>
+    </dependency>
+
+    <!-- JWT：HS256，claims: user_id/username/role/exp（对齐 vibe-erp 方案） -->
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>${jjwt.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- 仅用 BCrypt 做密码哈希，不引入完整 Spring Security 过滤链（自研轻量过滤器） -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-crypto</artifactId>
+    </dependency>
+
+    <!-- OPC-UA 客户端（SCADA 实时参数采集）。仅被 OpcUaEquipmentMetricAdapter 使用，
+         该适配器只在 fluxmes.integration.scada.mode=real 时装配 -->
+    <dependency>
+      <groupId>org.eclipse.milo</groupId>
+      <artifactId>sdk-client</artifactId>
+      <version>${milo.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- 保留 Jackson 2 databind：现有代码（FixtureStore 等）用 com.fasterxml.*；
+         Spring Boot 4 默认 Jackson 3(tools.jackson.*)，显式引入避免编译破坏 -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <!-- Jackson 2 的 Java 8 时间模块：Spring Boot 4 只自动装配 Jackson 3 的 ObjectMapper，
+         Jackson 2 实例由 Jackson2Config 手工注册，需显式加载 JavaTimeModule 才能正确序列化 OffsetDateTime/LocalDate -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+            </exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

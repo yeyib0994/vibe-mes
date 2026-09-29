@@ -6,6 +6,7 @@ import { PageHeader } from '../components/layout'
 import { AXIS_TICK, ChartTip } from '../components/charts'
 import { alarmLevelMap, alarmTopSources, alarmTrend } from '../data/mes'
 import { useAlarms, useAckAlarm, useRecoverAlarm, useAlarmTrend, useAlarmTopSources, useAlarmStats } from '../api/alarms'
+import { SuppressionPanel } from '../components/alarm-suppression'
 import StalenessBadge from '../components/StalenessBadge'
 
 const STATUS_MAP = {
@@ -77,7 +78,7 @@ export default function Alarms() {
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4" data-qoder-id="qel-grid-2c594361" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-grid-2c594361&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;grid&quot;,&quot;loc&quot;:{&quot;line&quot;:62,&quot;column&quot;:7}}">
         <AlarmStat label="今日报警" value={stats ? stats.todayTotal : '17'} unit="条" badge={<Badge tone="warn" dot={false}>活跃 {stats ? stats.active : '—'}</Badge>}  data-qoder-id="qel-alarmstat-27018e6e" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-27018e6e&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:63,&quot;column&quot;:9}}"/>
-        <AlarmStat label="活跃报警" value={stats ? stats.active : '3'} unit="条" badge={<Badge tone="danger" pulse={stats ? stats.unackedCritical > 0 : true}>含严重 {stats ? stats.unackedCritical : '—'}</Badge>}  data-qoder-id="qel-alarmstat-28019001" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-28019001&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:64,&quot;column&quot;:9}}"/>
+        <AlarmStat label="活跃报警" value={stats ? stats.active : '3'} unit="条" badge={<Badge tone="danger" pulse={stats ? stats.unackedCritical > 0 : true}>含严重 {stats ? stats.unackedCritical : '—'} · 超时 {stats ? stats.overdueUnacked : '—'}</Badge>}  data-qoder-id="qel-alarmstat-28019001" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-28019001&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:64,&quot;column&quot;:9}}"/>
         <AlarmStat label="平均响应时长" value={stats ? (stats.avgResponseMinutes ?? '—') : '4.2'} unit="min" badge={<Badge tone="accent" dot={false}>目标 ≤ 5 min</Badge>}  data-qoder-id="qel-alarmstat-25018b48" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-25018b48&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:65,&quot;column&quot;:9}}"/>
         <AlarmStat label="本班确认率" value={stats ? stats.ackRatePercent : '82'} unit="%"  data-qoder-id="qel-alarmstat-26018cdb" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-alarmstat-26018cdb&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;alarmstat&quot;,&quot;loc&quot;:{&quot;line&quot;:66,&quot;column&quot;:9}}"/>
       </div>
@@ -171,7 +172,14 @@ export default function Alarms() {
                       {a.value} <span className="text-faint" data-qoder-id="qel-text-faint-68bd257d" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-text-faint-68bd257d&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;text-faint&quot;,&quot;loc&quot;:{&quot;line&quot;:153,&quot;column&quot;:33}}">/ {a.threshold}</span>
                     </td>
                     <td className="px-3 py-3" data-qoder-id="qel-px-3-cb8428f8" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-px-3-cb8428f8&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;px-3&quot;,&quot;loc&quot;:{&quot;line&quot;:155,&quot;column&quot;:21}}">
-                      <Badge tone={st.tone} data-qoder-id="qel-badge-29efaf7b" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-badge-29efaf7b&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;badge&quot;,&quot;loc&quot;:{&quot;line&quot;:156,&quot;column&quot;:23}}">{st.label}</Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge tone={a.status === 'unacked' && a.overdue ? 'danger' : st.tone} pulse={a.status === 'unacked' && a.overdue}>
+                          {a.status === 'unacked' && a.overdue ? '超时未确认' : st.label}
+                        </Badge>
+                        {a.escalated && (
+                          <span className="num inline-flex items-center rounded bg-danger-soft px-1.5 py-0.5 text-[10px] font-medium text-danger">已升级 · 值班长</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3" data-qoder-id="qel-px-4-0e913d65" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-px-4-0e913d65&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Alarms.jsx&quot;,&quot;componentName&quot;:&quot;Alarms&quot;,&quot;elementRole&quot;:&quot;px-4&quot;,&quot;loc&quot;:{&quot;line&quot;:158,&quot;column&quot;:21}}">
                       {a.status === 'unacked' ? (
@@ -192,6 +200,9 @@ export default function Alarms() {
           )}
         </div>
       </Card>
+
+      {/* D1 · SLA 升级与抑制策略 */}
+      <SuppressionPanel />
     </div>
   )
 }

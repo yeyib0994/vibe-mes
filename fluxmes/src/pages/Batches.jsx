@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Download, Plus, Search, TriangleAlert } from 'lucide-react'
 import { Badge, Button, Card, Input, Progress, Tabs } from '../components/ui'
 import { PageHeader } from '../components/layout'
+import { BatchRowActions, NewBatchButton } from '../components/batch-actions'
+import EbrPanel from '../components/ebr-panel'
 import { batchStatusMap } from '../data/mes'
 import { useBatches } from '../api/batches'
 import StalenessBadge from '../components/StalenessBadge'
@@ -114,9 +116,7 @@ export default function Batches() {
             <Button variant="ghost">
               <Download className="h-3.5 w-3.5" /> 导入生产计划
             </Button>
-            <Button variant="primary">
-              <Plus className="h-3.5 w-3.5" /> 新建批次
-            </Button>
+            <NewBatchButton />
           </>
         }
        data-qoder-id="qel-pageheader-77e411e2" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-pageheader-77e411e2&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Batches.jsx&quot;,&quot;componentName&quot;:&quot;Batches&quot;,&quot;elementRole&quot;:&quot;pageheader&quot;,&quot;loc&quot;:{&quot;line&quot;:105,&quot;column&quot;:7}}"/>
@@ -213,6 +213,8 @@ function FragmentRow({ batch: b, st, isOpen, onToggle }) {
         <tr data-qoder-id="qel-tr-00189cdf" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-tr-00189cdf&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Batches.jsx&quot;,&quot;componentName&quot;:&quot;FragmentRow&quot;,&quot;elementRole&quot;:&quot;tr&quot;,&quot;loc&quot;:{&quot;line&quot;:208,&quot;column&quot;:9}}">
           <td colSpan={10} className="p-0" data-qoder-id="qel-p-0-b257fd8d" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-p-0-b257fd8d&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Batches.jsx&quot;,&quot;componentName&quot;:&quot;FragmentRow&quot;,&quot;elementRole&quot;:&quot;p-0&quot;,&quot;loc&quot;:{&quot;line&quot;:209,&quot;column&quot;:11}}">
             <BatchDetail batch={b}  data-qoder-id="qel-batchdetail-b16efd09" data-qoder-source="{&quot;qoderId&quot;:&quot;qel-batchdetail-b16efd09&quot;,&quot;filePath&quot;:&quot;react-vite/src/pages/Batches.jsx&quot;,&quot;componentName&quot;:&quot;FragmentRow&quot;,&quot;elementRole&quot;:&quot;batchdetail&quot;,&quot;loc&quot;:{&quot;line&quot;:210,&quot;column&quot;:13}}"/>
+            <BatchRowActions batch={b} />
+            <EbrPanel batchId={b.id} />
           </td>
         </tr>
       )}

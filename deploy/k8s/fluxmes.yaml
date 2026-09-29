@@ -1,0 +1,154 @@
+# FluxMES 本地 K8s 一键部署清单（Docker Desktop / docker-desktop context）
+# 组件：PostgreSQL 16 → Spring Boot API → nginx Web（LoadBalancer，localhost:80 直达）
+# 用法：bash deploy/k8s-up.sh
+# 注意：镜像 fluxmes-api:local / fluxmes-web:local 由 k8s-up.sh 先行 docker build 产出
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fluxmes
+---
+# ── PostgreSQL（业务数据：batch/alarm/audit/qc/e_signature 等）──────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fluxmes-pg-data
+  namespace: fluxmes
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluxmes-pg
+  namespace: fluxmes
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: fluxmes-pg }
+  template:
+    metadata:
+      labels: { app: fluxmes-pg }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          env:
+            - { name: POSTGRES_USER, value: fluxmes }
+            - { name: POSTGRES_PASSWORD, value: fluxmes }
+            - { name: POSTGRES_DB, value: fluxmes }
+            # PGDATA 放子目录，避免 PVC 挂载点 lost+found 干扰 initdb
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports:
+            - { containerPort: 5432 }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "fluxmes", "-d", "fluxmes"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: fluxmes-pg-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluxmes-pg        # 集群内 DNS：fluxmes-pg.fluxmes.svc:5432
+  namespace: fluxmes
+spec:
+  selector: { app: fluxmes-pg }
+  ports:
+    - { port: 5432, targetPort: 5432 }
+---
+# ── Spring Boot API（schema.sql 幂等初始化 + Seeder 全量播种，空库即用）──────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluxmes-api
+  namespace: fluxmes
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: fluxmes-api }
+  template:
+    metadata:
+      labels: { app: fluxmes-api }
+    spec:
+      containers:
+        - name: api
+          image: fluxmes-api:local
+          env:
+            # 覆盖 application.yml 的 localhost:5433（本机 Docker 直跑端口）
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://fluxmes-pg:5432/fluxmes
+            - name: SPRING_DATASOURCE_USERNAME
+              value: fluxmes
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: fluxmes
+            # relaxed binding → fluxmes.jwt.secret
+            - name: FLUXMES_JWT_SECRET
+              value: fluxmes-dev-secret-please-override-in-production
+          ports:
+            - { containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /v3/api-docs, port: 8080 }   # AuthFilter 白名单端点（无 actuator 依赖）
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 30    # 首次建表+播种较慢，容忍 ~150s
+          livenessProbe:
+            httpGet: { path: /v3/api-docs, port: 8080 }
+            initialDelaySeconds: 90
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluxmes-api        # nginx 反代目标：http://fluxmes-api:8080
+  namespace: fluxmes
+spec:
+  selector: { app: fluxmes-api }
+  ports:
+    - { port: 8080, targetPort: 8080 }
+---
+# ── Web 前端（nginx 静态站 + /api 反代）────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluxmes-web
+  namespace: fluxmes
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: fluxmes-web }
+  template:
+    metadata:
+      labels: { app: fluxmes-web }
+    spec:
+      containers:
+        - name: web
+          image: fluxmes-web:local
+          ports:
+            - { containerPort: 80 }
+          readinessProbe:
+            httpGet: { path: /, port: 80 }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluxmes-web
+  namespace: fluxmes
+  annotations:
+    note: "80 端口已被 vibe-erp/web LoadBalancer 占用，故用 8088（localhost:8088 直达）"
+spec:
+  type: LoadBalancer     # Docker Desktop 下 localhost:8088 直达
+  selector: { app: fluxmes-web }
+  ports:
+    - { port: 8088, targetPort: 80 }
